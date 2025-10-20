@@ -53,48 +53,64 @@ const initializeData = async () => {
             });
         }
 
-        // Crear rondas de ejemplo si no existen
+        // Crear rondas si no existen
         const roundCount = await Round.count();
 
         if (roundCount === 0) {
-            console.log('\n📝 Creando rondas de ejemplo...');
+            console.log('\n📝 Creando estructura de rondas...');
 
-            // 8 rondas normales
-            for (let i = 1; i <= 8; i++) {
+            let order = 1;
+
+            // Primeras 4 rondas normales
+            for (let i = 1; i <= 4; i++) {
                 await Round.create({
-                    title: `Ronda Normal ${i}`,
-                    description: `Descripción de la ronda ${i}`,
+                    title: `Ronda ${i}`,
+                    description: `[Editar desde panel admin] Descripción de la ronda ${i}`,
                     type: 'normal',
                     minPrice: 100,
                     minIncrement: 50,
-                    order: i
+                    order: order++
                 });
             }
 
-            // 2 rondas especiales
+            // Primera ronda especial
             await Round.create({
-                title: 'Ronda Especial 1',
-                description: 'Primera ronda con precio descendente',
+                title: 'Ronda 5 (Especial)',
+                description: '[Editar desde panel admin] Primera ronda con precio descendente',
                 type: 'special',
                 minPrice: 100,
-                startingPrice: 2000,
+                startingPrice: 1000,
                 priceDecrement: 50,
                 decrementInterval: 1000,
-                order: 9
+                order: order++
             });
 
+            // Siguientes 4 rondas normales
+            for (let i = 6; i <= 9; i++) {
+                await Round.create({
+                    title: `Ronda ${i}`,
+                    description: `[Editar desde panel admin] Descripción de la ronda ${i}`,
+                    type: 'normal',
+                    minPrice: 100,
+                    minIncrement: 50,
+                    order: order++
+                });
+            }
+
+            // Segunda ronda especial
             await Round.create({
-                title: 'Ronda Especial 2',
-                description: 'Segunda ronda con precio descendente',
+                title: 'Ronda 10 (Especial)',
+                description: '[Editar desde panel admin] Segunda ronda con precio descendente',
                 type: 'special',
-                minPrice: 200,
-                startingPrice: 3000,
-                priceDecrement: 100,
+                minPrice: 100,
+                startingPrice: 1000,
+                priceDecrement: 50,
                 decrementInterval: 1000,
-                order: 10
+                order: order++
             });
 
-            console.log('✅ Rondas de ejemplo creadas');
+            console.log('✅ Estructura de rondas creada (4 normales, 1 especial, 4 normales, 1 especial)');
+            console.log('ℹ️  Edita los títulos, descripciones y precios desde el panel de administración');
         } else {
             console.log('ℹ️  Las rondas ya existen');
         }

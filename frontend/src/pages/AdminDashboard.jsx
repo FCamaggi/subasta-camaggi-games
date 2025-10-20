@@ -129,6 +129,7 @@ const AdminDashboard = ({ user, onLogout }) => {
               round={round}
               onStart={handleStartRound}
               onClose={handleCloseRound}
+              onEdit={loadData}
             />
           ))}
         </div>
@@ -137,12 +138,18 @@ const AdminDashboard = ({ user, onLogout }) => {
   );
 };
 
-const RoundCard = ({ round, onStart, onClose }) => {
+const RoundCard = ({ round, onStart, onClose, onEdit }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  
   const statusColors = {
     pending: 'bg-yellow-100 text-yellow-800',
     active: 'bg-green-100 text-green-800',
     closed: 'bg-gray-100 text-gray-800'
   };
+
+  if (isEditing) {
+    return <EditRoundForm round={round} onSaved={() => { setIsEditing(false); onEdit(); }} onCancel={() => setIsEditing(false)} />;
+  }
 
   return (
     <div className="card">
@@ -177,12 +184,20 @@ const RoundCard = ({ round, onStart, onClose }) => {
 
       <div className="flex gap-2">
         {round.status === 'pending' && (
-          <button
-            onClick={() => onStart(round.id)}
-            className="btn-success"
-          >
-            ▶️ Iniciar Ronda
-          </button>
+          <>
+            <button
+              onClick={() => setIsEditing(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              ✏️ Editar
+            </button>
+            <button
+              onClick={() => onStart(round.id)}
+              className="btn-success"
+            >
+              ▶️ Iniciar Ronda
+            </button>
+          </>
         )}
         {round.status === 'active' && (
           <button
@@ -307,6 +322,124 @@ const CreateRoundForm = ({ onCreated, onCancel }) => {
             Crear Ronda
           </button>
           <button type="button" onClick={onCancel} className="btn-secondary">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+const EditRoundForm = ({ round, onSaved, onCancel }) => {
+  const [formData, setFormData] = useState({
+    title: round.title || '',
+    description: round.description || '',
+    type: round.type || 'normal',
+    minPrice: round.minPrice || 100,
+    minIncrement: round.minIncrement || 50,
+    startingPrice: round.startingPrice || 1000,
+    priceDecrement: round.priceDecrement || 50,
+    decrementInterval: round.decrementInterval || 1000
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await roundsAPI.update(round.id, formData);
+      onSaved();
+    } catch (error) {
+      alert('Error actualizando ronda: ' + error.message);
+    }
+  };
+
+  return (
+    <div className="card mb-6 border-2 border-blue-500">
+      <h3 className="text-xl font-bold mb-4">✏️ Editar Ronda</h3>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Título</label>
+          <input
+            type="text"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            className="input-field"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Descripción</label>
+          <textarea
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            className="input-field"
+            rows="3"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Tipo</label>
+          <select
+            value={formData.type}
+            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+            className="input-field"
+            disabled
+          >
+            <option value="normal">Normal</option>
+            <option value="special">Especial</option>
+          </select>
+          <p className="text-xs text-gray-500 mt-1">El tipo no se puede cambiar después de crear la ronda</p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Precio Mínimo</label>
+            <input
+              type="number"
+              value={formData.minPrice}
+              onChange={(e) => setFormData({ ...formData, minPrice: parseFloat(e.target.value) })}
+              className="input-field"
+              required
+            />
+          </div>
+          {formData.type === 'normal' ? (
+            <div>
+              <label className="block text-sm font-medium mb-1">Incremento Mínimo</label>
+              <input
+                type="number"
+                value={formData.minIncrement}
+                onChange={(e) => setFormData({ ...formData, minIncrement: parseFloat(e.target.value) })}
+                className="input-field"
+                required
+              />
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1">Precio Inicial</label>
+                <input
+                  type="number"
+                  value={formData.startingPrice}
+                  onChange={(e) => setFormData({ ...formData, startingPrice: parseFloat(e.target.value) })}
+                  className="input-field"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Decremento por segundo</label>
+                <input
+                  type="number"
+                  value={formData.priceDecrement}
+                  onChange={(e) => setFormData({ ...formData, priceDecrement: parseFloat(e.target.value) })}
+                  className="input-field"
+                  required
+                />
+              </div>
+            </>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            💾 Guardar Cambios
+          </button>
+          <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
             Cancelar
           </button>
         </div>
