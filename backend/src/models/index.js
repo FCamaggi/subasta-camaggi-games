@@ -21,22 +21,22 @@ Round.hasMany(Transaction, { foreignKey: 'roundId', as: 'transactions' });
 Transaction.belongsTo(Round, { foreignKey: 'roundId', as: 'round' });
 
 const initDatabase = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log('✅ Conexión a base de datos establecida');
-    await sequelize.sync({ alter: true });
-    console.log('✅ Modelos sincronizados');
-  } catch (error) {
-    console.error('❌ Error en base de datos:', error);
-    throw error;
-  }
+    try {
+        await sequelize.authenticate();
+        console.log('✅ Conexión a base de datos establecida');
+        await sequelize.sync({ alter: true });
+        console.log('✅ Modelos sincronizados');
+    } catch (error) {
+        console.error('❌ Error en base de datos:', error);
+        throw error;
+    }
 };
 
 module.exports = {
-  sequelize,
-  Team,
-  Round,
-  Bid,
-  Transaction,
-  initDatabase
+    sequelize,
+    Team,
+    Round,
+    Bid,
+    Transaction,
+    initDatabase
 };
