@@ -38,10 +38,17 @@ const AdminDashboard = ({ user, onLogout }) => {
         roundsAPI.getAll(),
         import('../services/api').then(m => m.teamsAPI.getAll())
       ]);
-      setRounds(roundsRes.data);
-      setTeams(teamsRes.data);
+      
+      // Validar que las respuestas sean arrays
+      const roundsData = Array.isArray(roundsRes.data) ? roundsRes.data : [];
+      const teamsData = Array.isArray(teamsRes.data) ? teamsRes.data : [];
+      
+      setRounds(roundsData);
+      setTeams(teamsData);
     } catch (error) {
       console.error('Error cargando datos:', error);
+      setRounds([]);
+      setTeams([]);
     } finally {
       setLoading(false);
     }

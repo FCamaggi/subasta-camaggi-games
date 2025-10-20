@@ -17,6 +17,9 @@ const bidsRoutes = require('./routes/bids');
 const app = express();
 const server = http.createServer(app);
 
+// Confiar en proxies (necesario para ngrok)
+app.set('trust proxy', 1);
+
 // Configurar CORS
 const corsOptions = {
     origin: function (origin, callback) {
@@ -41,7 +44,11 @@ const corsOptions = {
         }
 
         // En producción, validar contra lista
-        if (allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+        // Permitir cualquier subdominio de netlify.app
+        const isNetlify = origin.includes('.netlify.app');
+        const isAllowed = allowedOrigins.some(allowed => origin.startsWith(allowed));
+        
+        if (isAllowed || isNetlify) {
             callback(null, true);
         } else {
             console.log('❌ CORS bloqueado para origen:', origin);
@@ -92,7 +99,11 @@ const io = new Server(server, {
             }
 
             // En producción, validar
-            if (allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+            // Permitir cualquier subdominio de netlify.app
+            const isNetlify = origin.includes('.netlify.app');
+            const isAllowed = allowedOrigins.some(allowed => origin.startsWith(allowed));
+            
+            if (isAllowed || isNetlify) {
                 callback(null, true);
             } else {
                 console.log('❌ WebSocket bloqueado para origen:', origin);

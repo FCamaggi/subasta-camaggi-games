@@ -68,16 +68,23 @@ const TeamDashboard = ({ user, onLogout }) => {
         roundsAPI.getAll(),
         import('../services/api').then(m => m.teamsAPI.getAll())
       ]);
-      setRounds(roundsRes.data);
-      setTeams(teamsRes.data);
       
-      const active = roundsRes.data.find((r) => r.status === 'active');
+      // Validar que las respuestas sean arrays
+      const roundsData = Array.isArray(roundsRes.data) ? roundsRes.data : [];
+      const teamsData = Array.isArray(teamsRes.data) ? teamsRes.data : [];
+      
+      setRounds(roundsData);
+      setTeams(teamsData);
+      
+      const active = roundsData.find((r) => r.status === 'active');
       if (active) {
         const fullRound = await roundsAPI.getById(active.id);
         setActiveRound(fullRound.data);
       }
     } catch (error) {
       console.error('Error cargando datos:', error);
+      setRounds([]);
+      setTeams([]);
     } finally {
       setLoading(false);
     }
