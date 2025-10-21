@@ -39,14 +39,22 @@ const AdminDashboard = ({ user, onLogout }) => {
         import('../services/api').then(m => m.teamsAPI.getAll())
       ]);
       
+      console.log('🔍 AdminDashboard - roundsRes:', roundsRes);
+      console.log('🔍 AdminDashboard - teamsRes:', teamsRes);
+      console.log('🔍 AdminDashboard - roundsRes.data:', roundsRes.data);
+      console.log('🔍 AdminDashboard - teamsRes.data:', teamsRes.data);
+      
       // Validar que las respuestas sean arrays
       const roundsData = Array.isArray(roundsRes.data) ? roundsRes.data : [];
       const teamsData = Array.isArray(teamsRes.data) ? teamsRes.data : [];
       
+      console.log('✅ AdminDashboard - roundsData length:', roundsData.length);
+      console.log('✅ AdminDashboard - teamsData length:', teamsData.length);
+      
       setRounds(roundsData);
       setTeams(teamsData);
     } catch (error) {
-      console.error('Error cargando datos:', error);
+      console.error('❌ Error cargando datos:', error);
       setRounds([]);
       setTeams([]);
     } finally {

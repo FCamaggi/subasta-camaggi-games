@@ -11,15 +11,20 @@ const TeamDashboard = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('🎯 TeamDashboard - Componente montado');
+    console.log('👤 TeamDashboard - Usuario:', user);
+    console.log('🏆 TeamDashboard - Mi equipo:', myTeam);
     loadData();
     const socket = getSocket();
 
     socket.on('round:started', (round) => {
+      console.log('🎬 TeamDashboard - Ronda iniciada:', round);
       setActiveRound(round);
       setRounds((prev) => prev.map((r) => (r.id === round.id ? round : r)));
     });
 
     socket.on('round:closed', (round) => {
+      console.log('🏁 TeamDashboard - Ronda cerrada:', round);
       if (activeRound && activeRound.id === round.id) {
         setActiveRound(null);
       }
@@ -27,6 +32,7 @@ const TeamDashboard = ({ user, onLogout }) => {
     });
 
     socket.on('bid:new', (bid) => {
+      console.log('💰 TeamDashboard - Nueva puja:', bid);
       if (activeRound && bid.roundId === activeRound.id) {
         setActiveRound((prev) => ({
           ...prev,
@@ -37,6 +43,7 @@ const TeamDashboard = ({ user, onLogout }) => {
     });
 
     socket.on('round:priceUpdate', ({ roundId, currentPrice, stopped }) => {
+      console.log('💲 TeamDashboard - Actualización de precio:', { roundId, currentPrice, stopped });
       if (activeRound && activeRound.id === roundId) {
         setActiveRound((prev) => ({
           ...prev,
@@ -46,14 +53,17 @@ const TeamDashboard = ({ user, onLogout }) => {
     });
 
     socket.on('teams:updated', (updatedTeams) => {
+      console.log('🎯 TeamDashboard - Equipos actualizados:', updatedTeams);
       setTeams(updatedTeams);
       const updated = updatedTeams.find((t) => t.id === myTeam.id);
       if (updated) {
+        console.log('💰 TeamDashboard - Balance actualizado:', updated.balance);
         setMyTeam(updated);
       }
     });
 
     return () => {
+      console.log('🎯 TeamDashboard - Desmontando listeners');
       socket.off('round:started');
       socket.off('round:closed');
       socket.off('bid:new');
@@ -63,26 +73,36 @@ const TeamDashboard = ({ user, onLogout }) => {
   }, [activeRound, myTeam.id]);
 
   const loadData = async () => {
+    console.log('📥 TeamDashboard - Cargando datos...');
     try {
       const [roundsRes, teamsRes] = await Promise.all([
         roundsAPI.getAll(),
         import('../services/api').then(m => m.teamsAPI.getAll())
       ]);
       
+      console.log('📦 TeamDashboard - Respuesta rounds:', roundsRes);
+      console.log('📦 TeamDashboard - Respuesta teams:', teamsRes);
+      
       // Validar que las respuestas sean arrays
       const roundsData = Array.isArray(roundsRes.data) ? roundsRes.data : [];
       const teamsData = Array.isArray(teamsRes.data) ? teamsRes.data : [];
+      
+      console.log('✅ TeamDashboard - Rounds cargadas:', roundsData.length);
+      console.log('✅ TeamDashboard - Teams cargados:', teamsData.length);
       
       setRounds(roundsData);
       setTeams(teamsData);
       
       const active = roundsData.find((r) => r.status === 'active');
       if (active) {
+        console.log('🎬 TeamDashboard - Ronda activa encontrada:', active.id);
         const fullRound = await roundsAPI.getById(active.id);
         setActiveRound(fullRound.data);
+      } else {
+        console.log('⏸️ TeamDashboard - No hay ronda activa');
       }
     } catch (error) {
-      console.error('Error cargando datos:', error);
+      console.error('❌ TeamDashboard - Error cargando datos:', error);
       setRounds([]);
       setTeams([]);
     } finally {
@@ -91,6 +111,10 @@ const TeamDashboard = ({ user, onLogout }) => {
   };
 
   const handleBid = () => {
+    console.log('💰 TeamDashboard - Intentando hacer puja');
+    console.log('  💵 Monto:', bidAmount);
+    console.log('  🎯 Ronda activa:', activeRound?.id);
+    
     if (!bidAmount || !activeRound) return;
 
     const amount = parseFloat(bidAmount);
@@ -98,16 +122,24 @@ const TeamDashboard = ({ user, onLogout }) => {
     const minIncrement = parseFloat(activeRound.minIncrement);
     const minimumBid = currentPrice + minIncrement;
 
+    console.log('  📊 Precio actual:', currentPrice);
+    console.log('  📊 Incremento mínimo:', minIncrement);
+    console.log('  📊 Puja mínima requerida:', minimumBid);
+    console.log('  💰 Balance disponible:', myTeam.balance);
+
     if (amount < minimumBid) {
+      console.warn('⚠️ TeamDashboard - Puja menor al mínimo');
       alert(`La puja mínima es $${minimumBid.toFixed(2)}`);
       return;
     }
 
     if (amount > myTeam.balance) {
+      console.warn('⚠️ TeamDashboard - Balance insuficiente');
       alert('Balance insuficiente');
       return;
     }
 
+    console.log('✅ TeamDashboard - Enviando puja al servidor');
     const socket = getSocket();
     socket.emit('team:bid', {
       roundId: activeRound.id,

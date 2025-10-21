@@ -11,15 +11,18 @@ const SpectatorView = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('👀 SpectatorView - Componente montado');
     loadData();
     const socket = getSocket();
 
     socket.on('round:started', (round) => {
+      console.log('🎬 SpectatorView - Ronda iniciada:', round);
       setActiveRound(round);
       setRounds((prev) => prev.map((r) => (r.id === round.id ? round : r)));
     });
 
     socket.on('round:closed', (round) => {
+      console.log('🏁 SpectatorView - Ronda cerrada:', round);
       if (activeRound && activeRound.id === round.id) {
         setActiveRound(null);
       }
@@ -27,6 +30,7 @@ const SpectatorView = () => {
     });
 
     socket.on('bid:new', (bid) => {
+      console.log('💰 SpectatorView - Nueva puja:', bid);
       if (activeRound && bid.roundId === activeRound.id) {
         setActiveRound((prev) => ({
           ...prev,
@@ -37,6 +41,7 @@ const SpectatorView = () => {
     });
 
     socket.on('round:priceUpdate', ({ roundId, currentPrice }) => {
+      console.log('💲 SpectatorView - Actualización de precio:', { roundId, currentPrice });
       if (activeRound && activeRound.id === roundId) {
         setActiveRound((prev) => ({
           ...prev,
@@ -46,10 +51,12 @@ const SpectatorView = () => {
     });
 
     socket.on('teams:updated', (updatedTeams) => {
+      console.log('🎯 SpectatorView - Equipos actualizados:', updatedTeams);
       setTeams(updatedTeams);
     });
 
     return () => {
+      console.log('👀 SpectatorView - Desmontando listeners');
       socket.off('round:started');
       socket.off('round:closed');
       socket.off('bid:new');
@@ -59,26 +66,36 @@ const SpectatorView = () => {
   }, [activeRound]);
 
   const loadData = async () => {
+    console.log('📥 SpectatorView - Cargando datos...');
     try {
       const [roundsRes, teamsRes] = await Promise.all([
         roundsAPI.getAll(),
         teamsAPI.getAll()
       ]);
       
+      console.log('📦 SpectatorView - Respuesta rounds:', roundsRes);
+      console.log('📦 SpectatorView - Respuesta teams:', teamsRes);
+      
       // Validar que las respuestas sean arrays
       const roundsData = Array.isArray(roundsRes.data) ? roundsRes.data : [];
       const teamsData = Array.isArray(teamsRes.data) ? teamsRes.data : [];
+      
+      console.log('✅ SpectatorView - Rounds cargadas:', roundsData.length);
+      console.log('✅ SpectatorView - Teams cargados:', teamsData.length);
       
       setRounds(roundsData);
       setTeams(teamsData);
       
       const active = roundsData.find((r) => r.status === 'active');
       if (active) {
+        console.log('🎬 SpectatorView - Ronda activa encontrada:', active.id);
         const fullRound = await roundsAPI.getById(active.id);
         setActiveRound(fullRound.data);
+      } else {
+        console.log('⏸️ SpectatorView - No hay ronda activa');
       }
     } catch (error) {
-      console.error('Error cargando datos:', error);
+      console.error('❌ SpectatorView - Error cargando datos:', error);
       // Asegurarse de que los estados siempre sean arrays
       setRounds([]);
       setTeams([]);

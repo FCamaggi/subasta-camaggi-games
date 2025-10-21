@@ -112,7 +112,9 @@ const initializeData = async () => {
             console.log('✅ Estructura de rondas creada (4 normales, 1 especial, 4 normales, 1 especial)');
             console.log('ℹ️  Edita los títulos, descripciones y precios desde el panel de administración');
         } else {
-            console.log('ℹ️  Las rondas ya existen');
+            console.log(`ℹ️  Ya existen ${roundCount} rondas en la base de datos`);
+            console.log('ℹ️  Para recrear las rondas, elimina la base de datos:');
+            console.log('   rm database.sqlite && npm run init-db');
         }
 
         console.log('\n✅ Inicialización completada');

@@ -16,11 +16,16 @@ const Login = ({ onLogin }) => {
     setError('');
     setLoading(true);
 
+    console.log('🔐 Login - Intentando login de admin');
+    console.log('👤 Login - Username:', username);
+
     try {
       const response = await authAPI.loginAdmin(username, password);
+      console.log('✅ Login - Admin login exitoso:', response.data);
       onLogin('admin', { username }, response.data.token);
       navigate('/admin');
     } catch (err) {
+      console.error('❌ Login - Error en admin login:', err);
       setError('Credenciales inválidas');
     } finally {
       setLoading(false);
@@ -32,11 +37,16 @@ const Login = ({ onLogin }) => {
     setError('');
     setLoading(true);
 
+    console.log('🔐 Login - Intentando login de equipo');
+    console.log('🎯 Login - Token length:', teamToken.length);
+
     try {
       const response = await authAPI.loginTeam(teamToken);
+      console.log('✅ Login - Team login exitoso:', response.data);
       onLogin('team', response.data.team, response.data.token);
       navigate('/team');
     } catch (err) {
+      console.error('❌ Login - Error en team login:', err);
       setError('Token de equipo inválido');
     } finally {
       setLoading(false);
@@ -44,6 +54,7 @@ const Login = ({ onLogin }) => {
   };
 
   const handleSpectatorAccess = () => {
+    console.log('👀 Login - Acceso como espectador');
     navigate('/spectator');
   };
 

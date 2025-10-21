@@ -5,6 +5,9 @@ let socket = null;
 
 export const initSocket = () => {
     if (!socket) {
+        console.log('🔌 Socket - Inicializando conexión');
+        console.log('  📍 URL:', API_URL);
+        
         socket = io(API_URL, {
             transports: ['websocket'],
             reconnection: true,
@@ -13,15 +16,25 @@ export const initSocket = () => {
         });
 
         socket.on('connect', () => {
-            console.log('✅ Conectado al servidor');
+            console.log('✅ Socket - Conectado al servidor');
+            console.log('  🆔 Socket ID:', socket.id);
         });
 
         socket.on('disconnect', () => {
-            console.log('❌ Desconectado del servidor');
+            console.log('❌ Socket - Desconectado del servidor');
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('⚠️ Socket - Error de conexión:', error.message);
         });
 
         socket.on('error', (error) => {
-            console.error('Error de socket:', error);
+            console.error('❌ Socket - Error:', error);
+        });
+        
+        // Log de eventos recibidos
+        socket.onAny((eventName, ...args) => {
+            console.log(`📨 Socket - Evento recibido: ${eventName}`, args);
         });
     }
 

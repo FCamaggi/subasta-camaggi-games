@@ -19,6 +19,14 @@ if [ ! -f "database.sqlite" ]; then
     echo "⚠️  IMPORTANTE: Guarda los tokens que se mostraron arriba!"
     echo ""
     read -p "Presiona Enter para continuar..."
+else
+    echo "ℹ️  Base de datos encontrada: database.sqlite"
+    echo ""
+    echo "💡 Para recrear las rondas desde cero:"
+    echo "   1. Detén el servidor (Ctrl+C)"
+    echo "   2. Ejecuta: cd backend && rm database.sqlite"
+    echo "   3. Vuelve a ejecutar: ./start-backend.sh"
+    echo ""
 fi
 
 echo ""
