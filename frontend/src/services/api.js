@@ -13,7 +13,7 @@ const api = axios.create({
     },
 });
 
-// Interceptor para añadir el token
+// Interceptor para añadir el token y bypass de ngrok
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     console.log(`📤 API Request - ${config.method.toUpperCase()} ${config.url}`);
@@ -21,6 +21,8 @@ api.interceptors.request.use((config) => {
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+    // Agregar header para evitar la página de advertencia de ngrok
+    config.headers['ngrok-skip-browser-warning'] = 'true';
     return config;
 });
 
