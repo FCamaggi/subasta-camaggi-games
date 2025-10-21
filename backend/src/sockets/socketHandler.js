@@ -4,6 +4,8 @@ class SocketHandler {
     constructor(io) {
         this.io = io;
         this.activeIntervals = new Map(); // Para manejar rondas especiales
+        this.inactivityTimers = new Map(); // Para auto-cierre por inactividad
+        this.INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutos en milisegundos
     }
 
     initialize() {
@@ -44,6 +46,9 @@ class SocketHandler {
                     // Notificar a todos los clientes
                     this.io.emit('round:started', updatedRound);
 
+                    // Iniciar timer de auto-cierre por inactividad (5 minutos)
+                    this.startInactivityTimer(roundId);
+
                     // Si es ronda especial, iniciar descenso de precio
                     if (round.type === 'special') {
                         this.startPriceDecrement(round);
@@ -71,6 +76,9 @@ class SocketHandler {
                         socket.emit('error', { message: 'La ronda no está activa' });
                         return;
                     }
+
+                    // Cancelar timer de auto-cierre
+                    this.cancelInactivityTimer(roundId);
 
                     // Detener descenso de precio si es ronda especial
                     if (this.activeIntervals.has(roundId)) {
@@ -154,6 +162,9 @@ class SocketHandler {
                         include: [{ model: Team, as: 'team', attributes: ['id', 'name', 'color'] }]
                     });
 
+                    // Reiniciar timer de inactividad (cada puja resetea el timer)
+                    this.startInactivityTimer(roundId);
+
                     // Notificar a todos
                     this.io.emit('bid:new', bidWithTeam);
                 } catch (error) {
@@ -192,6 +203,9 @@ class SocketHandler {
                         clearInterval(this.activeIntervals.get(roundId));
                         this.activeIntervals.delete(roundId);
                     }
+
+                    // Cancelar timer de auto-cierre
+                    this.cancelInactivityTimer(roundId);
 
                     // Crear la "compra"
                     const bid = await Bid.create({
@@ -304,6 +318,95 @@ class SocketHandler {
         } catch (error) {
             await transaction.rollback();
             throw error;
+        }
+    }
+
+    // Iniciar timer de inactividad
+    startInactivityTimer(roundId) {
+        console.log(`⏰ Iniciando timer de inactividad para ronda ${roundId} (5 minutos)`);
+        
+        // Cancelar timer anterior si existe
+        this.cancelInactivityTimer(roundId);
+        
+        const timer = setTimeout(async () => {
+            console.log(`⏰ Timer expirado para ronda ${roundId}, cerrando automáticamente...`);
+            await this.autoCloseRound(roundId);
+        }, this.INACTIVITY_TIMEOUT);
+        
+        this.inactivityTimers.set(roundId, timer);
+    }
+
+    // Cancelar timer de inactividad
+    cancelInactivityTimer(roundId) {
+        if (this.inactivityTimers.has(roundId)) {
+            clearTimeout(this.inactivityTimers.get(roundId));
+            this.inactivityTimers.delete(roundId);
+            console.log(`⏰ Timer de inactividad cancelado para ronda ${roundId}`);
+        }
+    }
+
+    // Auto-cerrar ronda por inactividad
+    async autoCloseRound(roundId) {
+        try {
+            const round = await Round.findByPk(roundId, {
+                include: [{ model: Bid, as: 'bids', include: [{ model: Team, as: 'team' }] }]
+            });
+
+            if (!round || round.status !== 'active') {
+                console.log(`⚠️ Ronda ${roundId} ya no está activa, cancelando auto-cierre`);
+                return;
+            }
+
+            console.log(`🏁 Auto-cerrando ronda ${roundId} por inactividad...`);
+
+            // Detener descenso de precio si es ronda especial
+            if (this.activeIntervals.has(roundId)) {
+                clearInterval(this.activeIntervals.get(roundId));
+                this.activeIntervals.delete(roundId);
+            }
+
+            // Determinar ganador (última puja válida)
+            let winner = null;
+            let finalPrice = null;
+
+            if (round.bids && round.bids.length > 0) {
+                const lastBid = round.bids.sort((a, b) =>
+                    new Date(b.createdAt) - new Date(a.createdAt)
+                )[0];
+
+                winner = lastBid.team;
+                finalPrice = lastBid.amount;
+
+                // Descontar del balance del ganador
+                await this.processWinnerTransaction(lastBid.teamId, roundId, finalPrice);
+            }
+
+            await round.update({
+                status: 'closed',
+                closedAt: new Date(),
+                winnerId: winner ? winner.id : null,
+                finalPrice: finalPrice
+            });
+
+            const updatedRound = await Round.findByPk(roundId, {
+                include: [{ model: Team, as: 'winner', attributes: ['id', 'name', 'color'] }]
+            });
+
+            // Notificar a todos
+            this.io.emit('round:closed', updatedRound);
+            this.io.emit('round:autoCloseNotification', { 
+                roundId, 
+                reason: 'inactivity',
+                message: 'Ronda cerrada automáticamente por inactividad (5 minutos)'
+            });
+
+            // Enviar balances actualizados
+            const teams = await Team.findAll();
+            this.io.emit('teams:updated', teams);
+
+            console.log(`✅ Ronda ${roundId} cerrada automáticamente`);
+        } catch (error) {
+            console.error('❌ Error al auto-cerrar ronda:', error);
         }
     }
 }

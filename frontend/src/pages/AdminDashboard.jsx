@@ -10,25 +10,58 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('⚙️ AdminDashboard - Configurando listeners de socket');
     loadData();
     const socket = getSocket();
 
     socket.on('round:started', (round) => {
+      console.log('🎬 AdminDashboard - Ronda iniciada:', round);
       setRounds((prev) => prev.map((r) => (r.id === round.id ? round : r)));
     });
 
     socket.on('round:closed', (round) => {
+      console.log('🏁 AdminDashboard - Ronda cerrada:', round);
       setRounds((prev) => prev.map((r) => (r.id === round.id ? round : r)));
     });
 
+    socket.on('bid:new', (bid) => {
+      console.log('💰 AdminDashboard - Nueva puja recibida:', bid);
+      // Actualizar el precio actual de la ronda
+      setRounds((prev) => prev.map((r) => 
+        r.id === bid.roundId 
+          ? { ...r, currentPrice: bid.amount }
+          : r
+      ));
+    });
+
+    socket.on('round:priceUpdate', ({ roundId, currentPrice }) => {
+      console.log('💲 AdminDashboard - Actualización de precio:', { roundId, currentPrice });
+      setRounds((prev) => prev.map((r) => 
+        r.id === roundId 
+          ? { ...r, currentPrice }
+          : r
+      ));
+    });
+
     socket.on('teams:updated', (updatedTeams) => {
+      console.log('🎯 AdminDashboard - Teams actualizados:', updatedTeams);
       setTeams(updatedTeams);
     });
 
+    socket.on('round:autoCloseNotification', ({ roundId, reason, message }) => {
+      console.log('⏰ AdminDashboard - Notificación de auto-cierre:', { roundId, reason, message });
+      // Mostrar notificación visual (puedes agregar un toast aquí)
+      alert(message);
+    });
+
     return () => {
+      console.log('⚙️ AdminDashboard - Limpiando listeners');
       socket.off('round:started');
       socket.off('round:closed');
+      socket.off('bid:new');
+      socket.off('round:priceUpdate');
       socket.off('teams:updated');
+      socket.off('round:autoCloseNotification');
     };
   }, []);
 
