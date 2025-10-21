@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSocket } from '../services/socket';
 import { roundsAPI, teamsAPI } from '../services/api';
+import InactivityTimer from '../components/InactivityTimer';
 
 const SpectatorView = () => {
   const [rounds, setRounds] = useState([]);
   const [teams, setTeams] = useState([]);
   const [activeRound, setActiveRound] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [timerExpiresAt, setTimerExpiresAt] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -55,6 +57,20 @@ const SpectatorView = () => {
       setTeams(updatedTeams);
     });
 
+    socket.on('round:timerUpdate', ({ roundId, expiresAt }) => {
+      console.log('⏱️ SpectatorView - Timer actualizado:', { roundId, expiresAt });
+      if (activeRound && activeRound.id === roundId) {
+        setTimerExpiresAt(expiresAt);
+      }
+    });
+
+    socket.on('round:timerCancelled', ({ roundId }) => {
+      console.log('⏱️ SpectatorView - Timer cancelado:', { roundId });
+      if (activeRound && activeRound.id === roundId) {
+        setTimerExpiresAt(null);
+      }
+    });
+
     return () => {
       console.log('👀 SpectatorView - Desmontando listeners');
       socket.off('round:started');
@@ -62,6 +78,8 @@ const SpectatorView = () => {
       socket.off('bid:new');
       socket.off('round:priceUpdate');
       socket.off('teams:updated');
+      socket.off('round:timerUpdate');
+      socket.off('round:timerCancelled');
     };
   }, [activeRound]);
 
@@ -151,15 +169,20 @@ const SpectatorView = () => {
         {activeRound ? (
           <div className="mb-8">
             <div className="bg-white rounded-2xl shadow-2xl p-8">
-              <div className="mb-6">
-                <span className="inline-block px-6 py-3 bg-green-500 text-white rounded-full font-bold text-lg animate-pulse">
-                  🔴 EN VIVO
-                </span>
-                <span className={`ml-3 inline-block px-4 py-2 rounded-full text-base font-semibold ${
-                  activeRound.type === 'normal' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
-                }`}>
-                  {activeRound.type === 'normal' ? 'SUBASTA NORMAL' : 'SUBASTA ESPECIAL'}
-                </span>
+              <div className="mb-6 flex justify-between items-center">
+                <div>
+                  <span className="inline-block px-6 py-3 bg-green-500 text-white rounded-full font-bold text-lg animate-pulse">
+                    🔴 EN VIVO
+                  </span>
+                  <span className={`ml-3 inline-block px-4 py-2 rounded-full text-base font-semibold ${
+                    activeRound.type === 'normal' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                  }`}>
+                    {activeRound.type === 'normal' ? 'SUBASTA NORMAL' : 'SUBASTA ESPECIAL'}
+                  </span>
+                </div>
+                {timerExpiresAt && (
+                  <InactivityTimer roundId={activeRound.id} expiresAt={timerExpiresAt} />
+                )}
               </div>
               
               <h2 className="text-4xl font-bold mb-4">{activeRound.title}</h2>

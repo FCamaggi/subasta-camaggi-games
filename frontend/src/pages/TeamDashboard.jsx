@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getSocket } from '../services/socket';
 import { roundsAPI, bidsAPI } from '../services/api';
+import InactivityTimer from '../components/InactivityTimer';
 
 const TeamDashboard = ({ user, onLogout }) => {
   const [rounds, setRounds] = useState([]);
@@ -9,6 +10,7 @@ const TeamDashboard = ({ user, onLogout }) => {
   const [myTeam, setMyTeam] = useState(user.data);
   const [bidAmount, setBidAmount] = useState('');
   const [loading, setLoading] = useState(true);
+  const [timerExpiresAt, setTimerExpiresAt] = useState(null);
 
   useEffect(() => {
     console.log('🎯 TeamDashboard - Componente montado');
@@ -62,6 +64,20 @@ const TeamDashboard = ({ user, onLogout }) => {
       }
     });
 
+    socket.on('round:timerUpdate', ({ roundId, expiresAt }) => {
+      console.log('⏱️ TeamDashboard - Timer actualizado:', { roundId, expiresAt });
+      if (activeRound && activeRound.id === roundId) {
+        setTimerExpiresAt(expiresAt);
+      }
+    });
+
+    socket.on('round:timerCancelled', ({ roundId }) => {
+      console.log('⏱️ TeamDashboard - Timer cancelado:', { roundId });
+      if (activeRound && activeRound.id === roundId) {
+        setTimerExpiresAt(null);
+      }
+    });
+
     return () => {
       console.log('🎯 TeamDashboard - Desmontando listeners');
       socket.off('round:started');
@@ -69,6 +85,8 @@ const TeamDashboard = ({ user, onLogout }) => {
       socket.off('bid:new');
       socket.off('round:priceUpdate');
       socket.off('teams:updated');
+      socket.off('round:timerUpdate');
+      socket.off('round:timerCancelled');
     };
   }, [activeRound, myTeam.id]);
 
@@ -202,15 +220,20 @@ const TeamDashboard = ({ user, onLogout }) => {
         {activeRound ? (
           <div className="mb-8">
             <div className="card bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-400">
-              <div className="mb-4">
-                <span className="inline-block px-4 py-2 bg-green-500 text-white rounded-full font-bold text-sm">
-                  🔴 RONDA ACTIVA
-                </span>
-                <span className={`ml-2 inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                  activeRound.type === 'normal' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
-                }`}>
-                  {activeRound.type === 'normal' ? 'NORMAL' : 'ESPECIAL'}
-                </span>
+              <div className="mb-4 flex justify-between items-center">
+                <div>
+                  <span className="inline-block px-4 py-2 bg-green-500 text-white rounded-full font-bold text-sm">
+                    🔴 RONDA ACTIVA
+                  </span>
+                  <span className={`ml-2 inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                    activeRound.type === 'normal' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                  }`}>
+                    {activeRound.type === 'normal' ? 'NORMAL' : 'ESPECIAL'}
+                  </span>
+                </div>
+                {timerExpiresAt && (
+                  <InactivityTimer roundId={activeRound.id} expiresAt={timerExpiresAt} />
+                )}
               </div>
               
               <h2 className="text-3xl font-bold mb-2">{activeRound.title}</h2>

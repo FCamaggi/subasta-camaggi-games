@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getSocket } from '../services/socket';
 import { roundsAPI } from '../services/api';
+import InactivityTimer from '../components/InactivityTimer';
 
 const AdminDashboard = ({ user, onLogout }) => {
   const [rounds, setRounds] = useState([]);
@@ -8,6 +9,9 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [selectedRound, setSelectedRound] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [roundTimers, setRoundTimers] = useState({}); // { roundId: expiresAt }
+  const [showTimeoutConfig, setShowTimeoutConfig] = useState(false);
+  const [newTimeout, setNewTimeout] = useState(5); // minutos
 
   useEffect(() => {
     console.log('⚙️ AdminDashboard - Configurando listeners de socket');
@@ -54,6 +58,26 @@ const AdminDashboard = ({ user, onLogout }) => {
       alert(message);
     });
 
+    socket.on('round:timerUpdate', ({ roundId, expiresAt }) => {
+      console.log('⏱️ AdminDashboard - Timer actualizado:', { roundId, expiresAt });
+      setRoundTimers((prev) => ({ ...prev, [roundId]: expiresAt }));
+    });
+
+    socket.on('round:timerCancelled', ({ roundId }) => {
+      console.log('⏱️ AdminDashboard - Timer cancelado:', { roundId });
+      setRoundTimers((prev) => {
+        const newTimers = { ...prev };
+        delete newTimers[roundId];
+        return newTimers;
+      });
+    });
+
+    socket.on('config:timeoutUpdated', ({ minutes }) => {
+      console.log('⚙️ AdminDashboard - Timeout actualizado:', minutes);
+      setNewTimeout(minutes);
+      alert(`Timeout de auto-cierre actualizado a ${minutes} minutos`);
+    });
+
     return () => {
       console.log('⚙️ AdminDashboard - Limpiando listeners');
       socket.off('round:started');
@@ -62,6 +86,9 @@ const AdminDashboard = ({ user, onLogout }) => {
       socket.off('round:priceUpdate');
       socket.off('teams:updated');
       socket.off('round:autoCloseNotification');
+      socket.off('round:timerUpdate');
+      socket.off('round:timerCancelled');
+      socket.off('config:timeoutUpdated');
     };
   }, []);
 
@@ -108,6 +135,15 @@ const AdminDashboard = ({ user, onLogout }) => {
     socket.emit('admin:closeRound', { roundId });
   };
 
+  const handleChangeTimeout = () => {
+    const socket = getSocket();
+    socket.emit('admin:setInactivityTimeout', {
+      minutes: parseFloat(newTimeout),
+      token: user.token
+    });
+    setShowTimeoutConfig(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -120,13 +156,55 @@ const AdminDashboard = ({ user, onLogout }) => {
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
       <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">
-            ⚙️ Panel de Administración
-          </h1>
-          <button onClick={onLogout} className="btn-secondary">
-            Cerrar Sesión
-          </button>
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-3xl font-bold text-gray-900">
+              ⚙️ Panel de Administración
+            </h1>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowTimeoutConfig(!showTimeoutConfig)} 
+                className="btn-secondary"
+              >
+                ⚙️ Configurar Tiempo
+              </button>
+              <button onClick={onLogout} className="btn-secondary">
+                Cerrar Sesión
+              </button>
+            </div>
+          </div>
+          
+          {/* Configuración de timeout */}
+          {showTimeoutConfig && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <h3 className="font-bold text-lg mb-3">⏱️ Configurar Tiempo de Auto-Cierre</h3>
+              <p className="text-sm text-gray-600 mb-3">
+                Las rondas se cerrarán automáticamente después de este tiempo sin pujas.
+              </p>
+              <div className="flex gap-3 items-center">
+                <input
+                  type="number"
+                  min="0.5"
+                  max="30"
+                  step="0.5"
+                  value={newTimeout}
+                  onChange={(e) => setNewTimeout(e.target.value)}
+                  className="input-field w-32"
+                  placeholder="Minutos"
+                />
+                <span className="text-sm font-semibold">minutos</span>
+                <button onClick={handleChangeTimeout} className="btn-primary">
+                  Aplicar
+                </button>
+                <button onClick={() => setShowTimeoutConfig(false)} className="btn-secondary">
+                  Cancelar
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Mínimo: 0.5 minutos (30 segundos) | Máximo: 30 minutos
+              </p>
+            </div>
+          )}
         </div>
       </header>
 
@@ -171,6 +249,7 @@ const AdminDashboard = ({ user, onLogout }) => {
               onStart={handleStartRound}
               onClose={handleCloseRound}
               onEdit={loadData}
+              timerExpiresAt={roundTimers[round.id]}
             />
           ))}
         </div>
@@ -179,7 +258,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   );
 };
 
-const RoundCard = ({ round, onStart, onClose, onEdit }) => {
+const RoundCard = ({ round, onStart, onClose, onEdit, timerExpiresAt }) => {
   const [isEditing, setIsEditing] = useState(false);
   
   const statusColors = {
@@ -195,17 +274,22 @@ const RoundCard = ({ round, onStart, onClose, onEdit }) => {
   return (
     <div className="card">
       <div className="flex justify-between items-start mb-4">
-        <div>
+        <div className="flex-1">
           <h3 className="text-xl font-bold">{round.title}</h3>
           <p className="text-gray-600">{round.description}</p>
-          <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mt-2 ${statusColors[round.status]}`}>
-            {round.status.toUpperCase()}
-          </span>
-          <span className={`ml-2 inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-            round.type === 'normal' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
-          }`}>
-            {round.type === 'normal' ? 'NORMAL' : 'ESPECIAL'}
-          </span>
+          <div className="flex items-center gap-2 mt-2">
+            <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${statusColors[round.status]}`}>
+              {round.status.toUpperCase()}
+            </span>
+            <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+              round.type === 'normal' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+            }`}>
+              {round.type === 'normal' ? 'NORMAL' : 'ESPECIAL'}
+            </span>
+            {round.status === 'active' && timerExpiresAt && (
+              <InactivityTimer roundId={round.id} expiresAt={timerExpiresAt} />
+            )}
+          </div>
         </div>
         <div className="text-right">
           <p className="text-sm text-gray-600">Precio Actual</p>

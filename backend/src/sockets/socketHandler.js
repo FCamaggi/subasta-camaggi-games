@@ -5,6 +5,7 @@ class SocketHandler {
         this.io = io;
         this.activeIntervals = new Map(); // Para manejar rondas especiales
         this.inactivityTimers = new Map(); // Para auto-cierre por inactividad
+        this.inactivityStartTimes = new Map(); // Cuando se inició el timer de cada ronda
         this.INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutos en milisegundos
     }
 
@@ -119,6 +120,44 @@ class SocketHandler {
                     // Enviar balances actualizados
                     const teams = await Team.findAll();
                     this.io.emit('teams:updated', teams);
+                } catch (error) {
+                    socket.emit('error', { message: error.message });
+                }
+            });
+
+            // Admin cambia el timeout de auto-cierre
+            socket.on('admin:setInactivityTimeout', async (data) => {
+                try {
+                    const { minutes, token } = data;
+                    
+                    // Validar que sea admin (simplificado)
+                    if (!token) {
+                        socket.emit('error', { message: 'No autorizado' });
+                        return;
+                    }
+                    
+                    const newTimeout = minutes * 60 * 1000; // Convertir minutos a milisegundos
+                    
+                    if (newTimeout < 30000) { // Mínimo 30 segundos
+                        socket.emit('error', { message: 'El timeout mínimo es 30 segundos (0.5 minutos)' });
+                        return;
+                    }
+                    
+                    if (newTimeout > 30 * 60 * 1000) { // Máximo 30 minutos
+                        socket.emit('error', { message: 'El timeout máximo es 30 minutos' });
+                        return;
+                    }
+                    
+                    this.INACTIVITY_TIMEOUT = newTimeout;
+                    console.log(`⚙️ Timeout de inactividad cambiado a ${minutes} minutos`);
+                    
+                    // Notificar a todos los clientes
+                    this.io.emit('config:timeoutUpdated', {
+                        minutes,
+                        milliseconds: newTimeout
+                    });
+                    
+                    socket.emit('success', { message: `Timeout actualizado a ${minutes} minutos` });
                 } catch (error) {
                     socket.emit('error', { message: error.message });
                 }
@@ -323,10 +362,15 @@ class SocketHandler {
 
     // Iniciar timer de inactividad
     startInactivityTimer(roundId) {
-        console.log(`⏰ Iniciando timer de inactividad para ronda ${roundId} (5 minutos)`);
+        console.log(`⏰ Iniciando timer de inactividad para ronda ${roundId} (${this.INACTIVITY_TIMEOUT / 1000}s)`);
         
         // Cancelar timer anterior si existe
         this.cancelInactivityTimer(roundId);
+        
+        // Guardar el tiempo de inicio
+        const startTime = Date.now();
+        const expiresAt = startTime + this.INACTIVITY_TIMEOUT;
+        this.inactivityStartTimes.set(roundId, { startTime, expiresAt });
         
         const timer = setTimeout(async () => {
             console.log(`⏰ Timer expirado para ronda ${roundId}, cerrando automáticamente...`);
@@ -334,6 +378,13 @@ class SocketHandler {
         }, this.INACTIVITY_TIMEOUT);
         
         this.inactivityTimers.set(roundId, timer);
+        
+        // Notificar a todos los clientes sobre el nuevo timer
+        this.io.emit('round:timerUpdate', {
+            roundId,
+            expiresAt,
+            duration: this.INACTIVITY_TIMEOUT
+        });
     }
 
     // Cancelar timer de inactividad
@@ -341,7 +392,11 @@ class SocketHandler {
         if (this.inactivityTimers.has(roundId)) {
             clearTimeout(this.inactivityTimers.get(roundId));
             this.inactivityTimers.delete(roundId);
+            this.inactivityStartTimes.delete(roundId);
             console.log(`⏰ Timer de inactividad cancelado para ronda ${roundId}`);
+            
+            // Notificar que el timer fue cancelado
+            this.io.emit('round:timerCancelled', { roundId });
         }
     }
 
