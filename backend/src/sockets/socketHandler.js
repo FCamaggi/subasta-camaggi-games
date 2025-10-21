@@ -13,6 +13,19 @@ class SocketHandler {
         this.io.on('connection', (socket) => {
             console.log('Cliente conectado:', socket.id);
 
+            // Cliente solicita estado actual de timers
+            socket.on('client:requestTimerState', () => {
+                console.log('📡 Cliente solicitó estado de timers');
+                // Enviar todos los timers activos
+                this.inactivityStartTimes.forEach((timeData, roundId) => {
+                    socket.emit('round:timerUpdate', {
+                        roundId,
+                        expiresAt: timeData.expiresAt,
+                        duration: this.INACTIVITY_TIMEOUT
+                    });
+                });
+            });
+
             socket.on('disconnect', () => {
                 console.log('Cliente desconectado:', socket.id);
             });

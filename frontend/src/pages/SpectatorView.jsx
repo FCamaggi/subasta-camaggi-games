@@ -109,6 +109,10 @@ const SpectatorView = () => {
         console.log('🎬 SpectatorView - Ronda activa encontrada:', active.id);
         const fullRound = await roundsAPI.getById(active.id);
         setActiveRound(fullRound.data);
+        
+        // Solicitar estado del timer para la ronda activa
+        const socket = getSocket();
+        socket.emit('client:requestTimerState');
       } else {
         console.log('⏸️ SpectatorView - No hay ronda activa');
       }
