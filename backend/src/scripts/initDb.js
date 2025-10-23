@@ -61,16 +61,16 @@ const initializeData = async () => {
 
             const rounds = [
                 {
-                    title: 'Ludopatía',
-                    description: 'El equipo ganador de este item puede apostar entre 0 y 15 puntos de alianza para intentar duplicarlos en un juego de cara o sello',
+                    title: 'Mano de Host',
+                    description: 'El equipo ganador de este item recibe la ayuda del host en ese momento, el host decidirá como será esta ayuda y todo lo relacionado con ella',
                     type: 'normal',
                     minPrice: 100,
                     minIncrement: 50,
                     order: 1,
-                    presentationTime: 30000 // 30 segundos
+                    presentationTime: 30000
                 },
                 {
-                    title: 'Duplicator',
+                    title: 'Doble [Filo]',
                     description: 'El equipo ganador de este item puede utilizarlo para hacer que la siguiente ronda de un juego presencial valga el doble de puntos, ya sea puntos de alianza o puntos del juego, el host verá como aplicarlo satisfactoriamente, siempre se debe aplicar antes de jugar',
                     type: 'normal',
                     minPrice: 100,
@@ -79,8 +79,8 @@ const initializeData = async () => {
                     presentationTime: 30000
                 },
                 {
-                    title: 'Mano de Host',
-                    description: 'El equipo ganador de este item recibe la ayuda del host en ese momento, el host decidirá como será esta ayuda y todo lo relacionado con ella',
+                    title: 'Mistery Box',
+                    description: 'Un premio sorpresa que será indicado por el host al líder de la alianza que lo compró',
                     type: 'normal',
                     minPrice: 100,
                     minIncrement: 50,
@@ -109,7 +109,7 @@ const initializeData = async () => {
                 },
                 {
                     title: '"7"',
-                    description: 'La alianza que gana este item puede robar a la otra alianza un item comprado anteriormente, es de uso inmediato, si no se puede usar se traduce en 5 puntos',
+                    description: 'La alianza que gana este item puede robar a la otra alianza un item de subasta normal solamente, es de uso inmediato, si no se puede usar se traduce en 5 puntos',
                     type: 'normal',
                     minPrice: 100,
                     minIncrement: 50,
@@ -118,7 +118,7 @@ const initializeData = async () => {
                 },
                 {
                     title: 'Attention Pickpocket',
-                    description: 'El equipo ganador le roba $500 de la subasta al otro equipo',
+                    description: 'El equipo ganador le roba $500 de la subasta al otro equipo. El admin manejará manualmente las carteras de los equipos.',
                     type: 'normal',
                     minPrice: 100,
                     minIncrement: 50,
@@ -127,20 +127,24 @@ const initializeData = async () => {
                 },
                 {
                     title: 'Una Rusa',
-                    description: 'El equipo ganador puede jugar una ruleta donde puede ganar una copia de cualquier item normal de esta subasta',
+                    description: 'El equipo ganador puede girar una ruleta donde puede ganar una copia de cualquier item normal de esta subasta (items de las rondas 1-7)',
                     type: 'normal',
                     minPrice: 100,
                     minIncrement: 50,
                     order: 8,
+                    hasMinigame: true,
+                    minigameType: 'roulette',
                     presentationTime: 30000
                 },
                 {
-                    title: 'Mistery Box',
-                    description: 'Un premio sorpresa que será indicado por el host al líder de la alianza que lo compró',
+                    title: 'Ludopatía',
+                    description: 'El equipo ganador puede apostar entre 0 y 15 puntos de alianza para intentar duplicarlos en un juego de cara o sello',
                     type: 'normal',
                     minPrice: 100,
                     minIncrement: 50,
                     order: 9,
+                    hasMinigame: true,
+                    minigameType: 'coinflip',
                     presentationTime: 30000
                 },
                 {

@@ -3,6 +3,8 @@ import { getSocket } from '../services/socket';
 import { roundsAPI, bidsAPI } from '../services/api';
 import InactivityTimer from '../components/InactivityTimer';
 import PresentationTimer from '../components/PresentationTimer';
+import CoinFlipGame from '../components/CoinFlipGame';
+import RouletteGame from '../components/RouletteGame';
 
 const TeamDashboard = ({ user, onLogout }) => {
   const [rounds, setRounds] = useState([]);
@@ -13,6 +15,8 @@ const TeamDashboard = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [timerExpiresAt, setTimerExpiresAt] = useState(null);
   const [presentationEndsAt, setPresentationEndsAt] = useState(null);
+  const [showMinigame, setShowMinigame] = useState(null); // 'coinflip', 'roulette', o null
+  const [wonRound, setWonRound] = useState(null); // Ronda que ganó el equipo
 
   useEffect(() => {
     console.log('🎯 TeamDashboard - Componente montado');
@@ -29,6 +33,14 @@ const TeamDashboard = ({ user, onLogout }) => {
 
     socket.on('round:closed', (round) => {
       console.log('🏁 TeamDashboard - Ronda cerrada:', round);
+      
+      // Si mi equipo ganó esta ronda y tiene minijuego, mostrarlo
+      if (round.winner && round.winner.id === myTeam.id && round.hasMinigame) {
+        console.log('🎮 Mi equipo ganó una ronda con minijuego:', round.minigameType);
+        setWonRound(round);
+        setShowMinigame(round.minigameType);
+      }
+      
       if (activeRound && activeRound.id === round.id) {
         setActiveRound(null);
       }
@@ -386,6 +398,27 @@ const TeamDashboard = ({ user, onLogout }) => {
           </div>
         </div>
       </div>
+
+      {/* Minijuegos */}
+      {showMinigame === 'coinflip' && (
+        <CoinFlipGame 
+          roundId={wonRound?.id} 
+          onClose={() => {
+            setShowMinigame(null);
+            setWonRound(null);
+          }} 
+        />
+      )}
+      
+      {showMinigame === 'roulette' && (
+        <RouletteGame 
+          roundId={wonRound?.id} 
+          onClose={() => {
+            setShowMinigame(null);
+            setWonRound(null);
+          }} 
+        />
+      )}
     </div>
   );
 };

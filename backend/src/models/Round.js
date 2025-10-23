@@ -96,6 +96,15 @@ const Round = sequelize.define('Round', {
     presentationEndsAt: {
         type: DataTypes.DATE,
         allowNull: true
+    },
+    hasMinigame: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    minigameType: {
+        type: DataTypes.STRING, // 'coinflip' o 'roulette'
+        allowNull: true
     }
 }, {
     tableName: 'rounds',

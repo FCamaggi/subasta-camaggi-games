@@ -94,6 +94,11 @@ const AdminDashboard = ({ user, onLogout }) => {
       alert(`Timeout de auto-cierre actualizado a ${minutes} minutos`);
     });
 
+    socket.on('round:stealMoney', (data) => {
+      console.log('💰 AdminDashboard - Robo de dinero ejecutado:', data);
+      alert(`🎯 Automatización: ${data.message}`);
+    });
+
     return () => {
       console.log('⚙️ AdminDashboard - Limpiando listeners');
       socket.off('round:started');
@@ -107,6 +112,7 @@ const AdminDashboard = ({ user, onLogout }) => {
       socket.off('round:presentationStarted');
       socket.off('round:presentationEnded');
       socket.off('config:timeoutUpdated');
+      socket.off('round:stealMoney');
     };
   }, []);
 
