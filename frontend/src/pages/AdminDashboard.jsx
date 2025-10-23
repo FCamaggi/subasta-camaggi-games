@@ -148,6 +148,65 @@ const AdminDashboard = ({ user, onLogout, showPreviewGame, setShowPreviewGame })
     }
   };
 
+  const handleUpdateBalance = async (teamId) => {
+    const input = document.getElementById(`balance-${teamId}`);
+    const newBalance = parseFloat(input.value);
+    
+    if (isNaN(newBalance) || newBalance < 0) {
+      alert('Por favor ingresa un valor válido');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/teams/${teamId}/balance`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`
+        },
+        body: JSON.stringify({ balance: newBalance })
+      });
+
+      if (response.ok) {
+        input.value = '';
+        loadData(); // Recargar datos
+        alert(`Balance actualizado a $${newBalance.toFixed(2)}`);
+      } else {
+        alert('Error al actualizar balance');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al actualizar balance');
+    }
+  };
+
+  const handleAdjustBalance = async (teamId, amount) => {
+    const team = teams.find(t => t.id === teamId);
+    if (!team) return;
+
+    const newBalance = Math.max(0, parseFloat(team.balance) + amount);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/teams/${teamId}/balance`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`
+        },
+        body: JSON.stringify({ balance: newBalance })
+      });
+
+      if (response.ok) {
+        loadData(); // Recargar datos
+      } else {
+        alert('Error al ajustar balance');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al ajustar balance');
+    }
+  };
+
   const handleStartRound = (roundId) => {
     const socket = getSocket();
     socket.emit('admin:startRound', {
@@ -267,9 +326,52 @@ const AdminDashboard = ({ user, onLogout, showPreviewGame, setShowPreviewGame })
               }`}
             >
               <h3 className="text-xl font-bold mb-2">{team.name}</h3>
-              <p className="text-3xl font-bold">
+              <p className="text-3xl font-bold mb-4">
                 ${parseFloat(team.balance).toFixed(2)}
               </p>
+              
+              {/* Controles de balance */}
+              <div className="flex gap-2 items-center">
+                <input
+                  type="number"
+                  step="50"
+                  placeholder="Nuevo balance"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  id={`balance-${team.id}`}
+                />
+                <button
+                  onClick={() => handleUpdateBalance(team.id)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
+                >
+                  💰 Actualizar
+                </button>
+              </div>
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => handleAdjustBalance(team.id, -500)}
+                  className="flex-1 px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
+                >
+                  -$500
+                </button>
+                <button
+                  onClick={() => handleAdjustBalance(team.id, -100)}
+                  className="flex-1 px-3 py-1 bg-red-400 text-white rounded text-sm hover:bg-red-500"
+                >
+                  -$100
+                </button>
+                <button
+                  onClick={() => handleAdjustBalance(team.id, 100)}
+                  className="flex-1 px-3 py-1 bg-green-400 text-white rounded text-sm hover:bg-green-500"
+                >
+                  +$100
+                </button>
+                <button
+                  onClick={() => handleAdjustBalance(team.id, 500)}
+                  className="flex-1 px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
+                >
+                  +$500
+                </button>
+              </div>
             </div>
           ))}
         </div>

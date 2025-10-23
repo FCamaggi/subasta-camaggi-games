@@ -41,7 +41,7 @@ const CoinFlipGame = ({ roundId, teamId, onClose, isPreview = false }) => {
 
     setIsFlipping(true);
     
-    // Simular el lanzamiento de la moneda
+    // Simular el lanzamiento de la moneda con animación más larga
     setTimeout(() => {
       const coinResult = Math.random() < 0.5 ? 'heads' : 'tails';
       const won = coinResult === selectedSide;
@@ -68,7 +68,7 @@ const CoinFlipGame = ({ roundId, teamId, onClose, isPreview = false }) => {
           result: resultData
         });
       }
-    }, 2000);
+    }, 3000); // 3 segundos de animación
   };
 
   return (
@@ -147,6 +147,19 @@ const CoinFlipGame = ({ roundId, teamId, onClose, isPreview = false }) => {
                 Si pierdes: <span className="font-bold text-red-600">-{betPoints} puntos</span>
               </div>
             </div>
+
+            {/* Animación de moneda girando */}
+            {isFlipping && (
+              <div className="mb-6 flex justify-center">
+                <div className="relative w-32 h-32">
+                  <div className="absolute inset-0 animate-spin" style={{ animationDuration: '0.5s' }}>
+                    <div className="w-full h-full bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-6xl shadow-2xl">
+                      🪙
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Botón de lanzar */}
             <button

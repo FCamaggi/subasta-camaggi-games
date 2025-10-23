@@ -63,4 +63,32 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Actualizar balance de un equipo (solo admin)
+router.patch('/:id/balance', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { balance } = req.body;
+
+        if (typeof balance !== 'number' || balance < 0) {
+            return res.status(400).json({ error: 'Balance inválido' });
+        }
+
+        const team = await Team.findByPk(id);
+        if (!team) {
+            return res.status(404).json({ error: 'Equipo no encontrado' });
+        }
+
+        await team.update({ balance });
+
+        res.json({
+            id: team.id,
+            name: team.name,
+            color: team.color,
+            balance: parseFloat(team.balance)
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

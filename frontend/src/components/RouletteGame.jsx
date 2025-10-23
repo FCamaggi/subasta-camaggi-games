@@ -46,7 +46,7 @@ const RouletteGame = ({ roundId, teamId, onClose, isPreview = false }) => {
 
     setIsSpinning(true);
     
-    // Seleccionar item aleatorio después de 3 segundos
+    // Seleccionar item aleatorio después de 4 segundos con animación
     setTimeout(() => {
       const randomIndex = Math.floor(Math.random() * items.length);
       const resultData = items[randomIndex];
@@ -65,7 +65,7 @@ const RouletteGame = ({ roundId, teamId, onClose, isPreview = false }) => {
           result: resultData
         });
       }
-    }, 3000);
+    }, 4000); // 4 segundos de animación
   };  return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl p-8 max-w-lg w-full mx-4">
@@ -96,7 +96,7 @@ const RouletteGame = ({ roundId, teamId, onClose, isPreview = false }) => {
             {/* Items disponibles */}
             <div className="mb-8">
               <p className="text-center text-sm text-gray-600 mb-4">Items disponibles:</p>
-              <div className="grid grid-cols-5 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 {items.map((item) => (
                   <div key={item.id} className={`text-center p-3 rounded-lg border-2 transition-all ${
                     isSpinning ? 'animate-pulse border-purple-400 bg-purple-50' : 'border-gray-300'
@@ -108,13 +108,25 @@ const RouletteGame = ({ roundId, teamId, onClose, isPreview = false }) => {
               </div>
             </div>
 
-            {/* Animación de ruleta */}
+            {/* Animación de ruleta girando */}
             {isSpinning && (
               <div className="mb-6 text-center">
-                <div className="inline-block text-8xl animate-spin">🎯</div>
+                <div className="inline-block relative">
+                  <div className="text-8xl animate-spin" style={{ animationDuration: '0.3s' }}>
+                    🎯
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-4xl animate-bounce">✨</div>
+                  </div>
+                </div>
                 <p className="mt-4 text-xl font-bold text-purple-600 animate-pulse">
-                  Girando la ruleta...
+                  ¡Girando la ruleta!
                 </p>
+                <div className="flex justify-center gap-1 mt-2">
+                  <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
               </div>
             )}
 
