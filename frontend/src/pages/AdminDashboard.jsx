@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getSocket } from '../services/socket';
 import { roundsAPI } from '../services/api';
 import InactivityTimer from '../components/InactivityTimer';
+import PresentationTimer from '../components/PresentationTimer';
 
 const AdminDashboard = ({ user, onLogout }) => {
   const [rounds, setRounds] = useState([]);
@@ -10,6 +11,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [roundTimers, setRoundTimers] = useState({}); // { roundId: expiresAt }
+  const [presentationTimers, setPresentationTimers] = useState({}); // { roundId: presentationEndsAt }
   const [showTimeoutConfig, setShowTimeoutConfig] = useState(false);
   const [newTimeout, setNewTimeout] = useState(5); // minutos
 
@@ -72,6 +74,20 @@ const AdminDashboard = ({ user, onLogout }) => {
       });
     });
 
+    socket.on('round:presentationStarted', ({ roundId, presentationEndsAt }) => {
+      console.log('🎬 AdminDashboard - Presentación iniciada:', { roundId, presentationEndsAt });
+      setPresentationTimers((prev) => ({ ...prev, [roundId]: presentationEndsAt }));
+    });
+
+    socket.on('round:presentationEnded', ({ roundId }) => {
+      console.log('🎬 AdminDashboard - Presentación finalizada:', { roundId });
+      setPresentationTimers((prev) => {
+        const newTimers = { ...prev };
+        delete newTimers[roundId];
+        return newTimers;
+      });
+    });
+
     socket.on('config:timeoutUpdated', ({ minutes }) => {
       console.log('⚙️ AdminDashboard - Timeout actualizado:', minutes);
       setNewTimeout(minutes);
@@ -88,6 +104,8 @@ const AdminDashboard = ({ user, onLogout }) => {
       socket.off('round:autoCloseNotification');
       socket.off('round:timerUpdate');
       socket.off('round:timerCancelled');
+      socket.off('round:presentationStarted');
+      socket.off('round:presentationEnded');
       socket.off('config:timeoutUpdated');
     };
   }, []);
@@ -286,7 +304,10 @@ const RoundCard = ({ round, onStart, onClose, onEdit, timerExpiresAt }) => {
             }`}>
               {round.type === 'normal' ? 'NORMAL' : 'ESPECIAL'}
             </span>
-            {round.status === 'active' && timerExpiresAt && (
+            {round.status === 'active' && presentationTimers[round.id] && (
+              <PresentationTimer roundId={round.id} endsAt={presentationTimers[round.id]} />
+            )}
+            {round.status === 'active' && !presentationTimers[round.id] && timerExpiresAt && (
               <InactivityTimer roundId={round.id} expiresAt={timerExpiresAt} />
             )}
           </div>

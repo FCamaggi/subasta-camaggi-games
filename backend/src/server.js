@@ -47,7 +47,7 @@ const corsOptions = {
         // Permitir cualquier subdominio de netlify.app
         const isNetlify = origin.includes('.netlify.app');
         const isAllowed = allowedOrigins.some(allowed => origin.startsWith(allowed));
-        
+
         if (isAllowed || isNetlify) {
             callback(null, true);
         } else {
@@ -102,7 +102,7 @@ const io = new Server(server, {
             // Permitir cualquier subdominio de netlify.app
             const isNetlify = origin.includes('.netlify.app');
             const isAllowed = allowedOrigins.some(allowed => origin.startsWith(allowed));
-            
+
             if (isAllowed || isNetlify) {
                 callback(null, true);
             } else {

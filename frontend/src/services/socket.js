@@ -7,7 +7,7 @@ export const initSocket = () => {
     if (!socket) {
         console.log('🔌 Socket - Inicializando conexión');
         console.log('  📍 URL:', API_URL);
-        
+
         socket = io(API_URL, {
             transports: ['websocket'],
             reconnection: true,
@@ -31,7 +31,7 @@ export const initSocket = () => {
         socket.on('error', (error) => {
             console.error('❌ Socket - Error:', error);
         });
-        
+
         // Log de eventos recibidos
         socket.onAny((eventName, ...args) => {
             console.log(`📨 Socket - Evento recibido: ${eventName}`, args);

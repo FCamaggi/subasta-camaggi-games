@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getSocket } from '../services/socket';
 import { roundsAPI, teamsAPI } from '../services/api';
 import InactivityTimer from '../components/InactivityTimer';
+import PresentationTimer from '../components/PresentationTimer';
 
 const SpectatorView = () => {
   const [rounds, setRounds] = useState([]);
@@ -10,6 +11,7 @@ const SpectatorView = () => {
   const [activeRound, setActiveRound] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timerExpiresAt, setTimerExpiresAt] = useState(null);
+  const [presentationEndsAt, setPresentationEndsAt] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -71,6 +73,20 @@ const SpectatorView = () => {
       }
     });
 
+    socket.on('round:presentationStarted', ({ roundId, presentationEndsAt }) => {
+      console.log('🎬 SpectatorView - Presentación iniciada:', { roundId, presentationEndsAt });
+      if (activeRound && activeRound.id === roundId) {
+        setPresentationEndsAt(presentationEndsAt);
+      }
+    });
+
+    socket.on('round:presentationEnded', ({ roundId }) => {
+      console.log('🎬 SpectatorView - Presentación finalizada:', { roundId });
+      if (activeRound && activeRound.id === roundId) {
+        setPresentationEndsAt(null);
+      }
+    });
+
     return () => {
       console.log('👀 SpectatorView - Desmontando listeners');
       socket.off('round:started');
@@ -80,6 +96,8 @@ const SpectatorView = () => {
       socket.off('teams:updated');
       socket.off('round:timerUpdate');
       socket.off('round:timerCancelled');
+      socket.off('round:presentationStarted');
+      socket.off('round:presentationEnded');
     };
   }, [activeRound]);
 
@@ -184,9 +202,11 @@ const SpectatorView = () => {
                     {activeRound.type === 'normal' ? 'SUBASTA NORMAL' : 'SUBASTA ESPECIAL'}
                   </span>
                 </div>
-                {timerExpiresAt && (
+                {presentationEndsAt ? (
+                  <PresentationTimer roundId={activeRound.id} endsAt={presentationEndsAt} />
+                ) : timerExpiresAt ? (
                   <InactivityTimer roundId={activeRound.id} expiresAt={timerExpiresAt} />
-                )}
+                ) : null}
               </div>
               
               <h2 className="text-4xl font-bold mb-4">{activeRound.title}</h2>

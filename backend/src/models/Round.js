@@ -87,6 +87,15 @@ const Round = sequelize.define('Round', {
         type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 0
+    },
+    presentationTime: {
+        type: DataTypes.INTEGER, // en milisegundos
+        allowNull: false,
+        defaultValue: 30000 // 30 segundos por defecto
+    },
+    presentationEndsAt: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
 }, {
     tableName: 'rounds',

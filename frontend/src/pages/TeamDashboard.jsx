@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getSocket } from '../services/socket';
 import { roundsAPI, bidsAPI } from '../services/api';
 import InactivityTimer from '../components/InactivityTimer';
+import PresentationTimer from '../components/PresentationTimer';
 
 const TeamDashboard = ({ user, onLogout }) => {
   const [rounds, setRounds] = useState([]);
@@ -11,6 +12,7 @@ const TeamDashboard = ({ user, onLogout }) => {
   const [bidAmount, setBidAmount] = useState('');
   const [loading, setLoading] = useState(true);
   const [timerExpiresAt, setTimerExpiresAt] = useState(null);
+  const [presentationEndsAt, setPresentationEndsAt] = useState(null);
 
   useEffect(() => {
     console.log('🎯 TeamDashboard - Componente montado');
@@ -78,6 +80,20 @@ const TeamDashboard = ({ user, onLogout }) => {
       }
     });
 
+    socket.on('round:presentationStarted', ({ roundId, presentationEndsAt }) => {
+      console.log('🎬 TeamDashboard - Presentación iniciada:', { roundId, presentationEndsAt });
+      if (activeRound && activeRound.id === roundId) {
+        setPresentationEndsAt(presentationEndsAt);
+      }
+    });
+
+    socket.on('round:presentationEnded', ({ roundId }) => {
+      console.log('✅ TeamDashboard - Presentación terminada:', { roundId });
+      if (activeRound && activeRound.id === roundId) {
+        setPresentationEndsAt(null);
+      }
+    });
+
     return () => {
       console.log('🎯 TeamDashboard - Desmontando listeners');
       socket.off('round:started');
@@ -87,6 +103,8 @@ const TeamDashboard = ({ user, onLogout }) => {
       socket.off('teams:updated');
       socket.off('round:timerUpdate');
       socket.off('round:timerCancelled');
+      socket.off('round:presentationStarted');
+      socket.off('round:presentationEnded');
     };
   }, [activeRound, myTeam.id]);
 
@@ -235,10 +253,15 @@ const TeamDashboard = ({ user, onLogout }) => {
                     {activeRound.type === 'normal' ? 'NORMAL' : 'ESPECIAL'}
                   </span>
                 </div>
-                {timerExpiresAt && (
+                {timerExpiresAt && !presentationEndsAt && (
                   <InactivityTimer roundId={activeRound.id} expiresAt={timerExpiresAt} />
                 )}
               </div>
+              
+              {/* Timer de presentación */}
+              {presentationEndsAt && (
+                <PresentationTimer roundId={activeRound.id} presentationEndsAt={presentationEndsAt} />
+              )}
               
               <h2 className="text-3xl font-bold mb-2">{activeRound.title}</h2>
               <p className="text-gray-700 mb-4">{activeRound.description}</p>

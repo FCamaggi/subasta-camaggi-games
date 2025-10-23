@@ -57,60 +57,114 @@ const initializeData = async () => {
         const roundCount = await Round.count();
 
         if (roundCount === 0) {
-            console.log('\n📝 Creando estructura de rondas...');
+            console.log('\n📝 Creando rondas personalizadas...');
 
-            let order = 1;
-
-            // Primeras 4 rondas normales
-            for (let i = 1; i <= 4; i++) {
-                await Round.create({
-                    title: `Ronda ${i}`,
-                    description: `[Editar desde panel admin] Descripción de la ronda ${i}`,
+            const rounds = [
+                {
+                    title: 'Ludopatía',
+                    description: 'El equipo ganador de este item puede apostar entre 0 y 15 puntos de alianza para intentar duplicarlos en un juego de cara o sello',
                     type: 'normal',
                     minPrice: 100,
                     minIncrement: 50,
-                    order: order++
-                });
-            }
-
-            // Primera ronda especial
-            await Round.create({
-                title: 'Ronda 5 (Especial)',
-                description: '[Editar desde panel admin] Primera ronda con precio descendente',
-                type: 'special',
-                minPrice: 100,
-                startingPrice: 1000,
-                priceDecrement: 50,
-                decrementInterval: 1000,
-                order: order++
-            });
-
-            // Siguientes 4 rondas normales
-            for (let i = 6; i <= 9; i++) {
-                await Round.create({
-                    title: `Ronda ${i}`,
-                    description: `[Editar desde panel admin] Descripción de la ronda ${i}`,
+                    order: 1,
+                    presentationTime: 30000 // 30 segundos
+                },
+                {
+                    title: 'Duplicator',
+                    description: 'El equipo ganador de este item puede utilizarlo para hacer que la siguiente ronda de un juego presencial valga el doble de puntos, ya sea puntos de alianza o puntos del juego, el host verá como aplicarlo satisfactoriamente, siempre se debe aplicar antes de jugar',
                     type: 'normal',
                     minPrice: 100,
                     minIncrement: 50,
-                    order: order++
-                });
+                    order: 2,
+                    presentationTime: 30000
+                },
+                {
+                    title: 'Mano de Host',
+                    description: 'El equipo ganador de este item recibe la ayuda del host en ese momento, el host decidirá como será esta ayuda y todo lo relacionado con ella',
+                    type: 'normal',
+                    minPrice: 100,
+                    minIncrement: 50,
+                    order: 3,
+                    presentationTime: 30000
+                },
+                {
+                    title: 'Roba turno',
+                    description: 'El equipo ganador puede usar este item en el evento principal para robar el turno, ya sea para partir ellos, elegir ellos una categoria, etc, el host debe adecuarlo para un buen uso, nunca se usará con una ronda en progreso',
+                    type: 'normal',
+                    minPrice: 100,
+                    minIncrement: 50,
+                    order: 4,
+                    presentationTime: 30000
+                },
+                {
+                    title: '10 Puntos de Alianza',
+                    description: '10 puntos para la alianza que gane este item',
+                    type: 'special',
+                    minPrice: 100,
+                    startingPrice: 2000,
+                    priceDecrement: 50,
+                    decrementInterval: 1000,
+                    order: 5,
+                    presentationTime: 30000
+                },
+                {
+                    title: '"7"',
+                    description: 'La alianza que gana este item puede robar a la otra alianza un item comprado anteriormente, es de uso inmediato, si no se puede usar se traduce en 5 puntos',
+                    type: 'normal',
+                    minPrice: 100,
+                    minIncrement: 50,
+                    order: 6,
+                    presentationTime: 30000
+                },
+                {
+                    title: 'Attention Pickpocket',
+                    description: 'El equipo ganador le roba $500 de la subasta al otro equipo',
+                    type: 'normal',
+                    minPrice: 100,
+                    minIncrement: 50,
+                    order: 7,
+                    presentationTime: 30000
+                },
+                {
+                    title: 'Una Rusa',
+                    description: 'El equipo ganador puede jugar una ruleta donde puede ganar una copia de cualquier item normal de esta subasta',
+                    type: 'normal',
+                    minPrice: 100,
+                    minIncrement: 50,
+                    order: 8,
+                    presentationTime: 30000
+                },
+                {
+                    title: 'Mistery Box',
+                    description: 'Un premio sorpresa que será indicado por el host al líder de la alianza que lo compró',
+                    type: 'normal',
+                    minPrice: 100,
+                    minIncrement: 50,
+                    order: 9,
+                    presentationTime: 30000
+                },
+                {
+                    title: 'Interferencia',
+                    description: 'La alianza que gane este objeto puede hacer que la alianza rival en la siguiente ronda de juego deba comunicarse terminando sus frases en "Cambio", si no lo hace el host los ignorará, el host ha de ver como aplicarlo en la situación que se quiera aplicar',
+                    type: 'special',
+                    minPrice: 100,
+                    startingPrice: 1500,
+                    priceDecrement: 50,
+                    decrementInterval: 1000,
+                    order: 10,
+                    presentationTime: 30000
+                }
+            ];
+
+            for (const roundData of rounds) {
+                await Round.create(roundData);
             }
 
-            // Segunda ronda especial
-            await Round.create({
-                title: 'Ronda 10 (Especial)',
-                description: '[Editar desde panel admin] Segunda ronda con precio descendente',
-                type: 'special',
-                minPrice: 100,
-                startingPrice: 1000,
-                priceDecrement: 50,
-                decrementInterval: 1000,
-                order: order++
-            });
-
-            console.log('✅ Estructura de rondas creada (4 normales, 1 especial, 4 normales, 1 especial)');
-            console.log('ℹ️  Edita los títulos, descripciones y precios desde el panel de administración');
+            console.log(`✅ ${rounds.length} rondas creadas exitosamente:`);
+            console.log('   - 8 rondas normales');
+            console.log('   - 2 rondas especiales (rondas 5 y 10)');
+            console.log('   - Tiempo de presentación: 30 segundos cada una');
+            console.log('   - Tiempo de ronda: 3 minutos (configurable desde panel admin)');
         } else {
             console.log(`ℹ️  Ya existen ${roundCount} rondas en la base de datos`);
             console.log('ℹ️  Para recrear las rondas, elimina la base de datos:');

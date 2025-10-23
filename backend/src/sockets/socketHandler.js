@@ -6,7 +6,8 @@ class SocketHandler {
         this.activeIntervals = new Map(); // Para manejar rondas especiales
         this.inactivityTimers = new Map(); // Para auto-cierre por inactividad
         this.inactivityStartTimes = new Map(); // Cuando se inició el timer de cada ronda
-        this.INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutos en milisegundos
+        this.presentationTimers = new Map(); // Para manejar el tiempo de presentación
+        this.INACTIVITY_TIMEOUT = 3 * 60 * 1000; // 3 minutos en milisegundos (por defecto)
     }
 
     initialize() {
@@ -47,9 +48,14 @@ class SocketHandler {
                         return;
                     }
 
+                    const now = new Date();
+                    const presentationTime = round.presentationTime || 30000; // 30 segundos por defecto
+                    const presentationEndsAt = new Date(now.getTime() + presentationTime);
+
                     await round.update({
                         status: 'active',
-                        startedAt: new Date(),
+                        startedAt: now,
+                        presentationEndsAt: presentationEndsAt,
                         currentPrice: round.type === 'normal' ? round.minPrice : round.startingPrice
                     });
 
@@ -60,13 +66,31 @@ class SocketHandler {
                     // Notificar a todos los clientes
                     this.io.emit('round:started', updatedRound);
 
-                    // Iniciar timer de auto-cierre por inactividad (5 minutos)
-                    this.startInactivityTimer(roundId);
+                    // Iniciar periodo de presentación (no se puede pujar)
+                    console.log(`⏰ Iniciando periodo de presentación para ronda ${roundId} (${presentationTime / 1000}s)`);
+                    
+                    const presentationTimer = setTimeout(() => {
+                        console.log(`✅ Periodo de presentación terminado para ronda ${roundId}`);
+                        this.io.emit('round:presentationEnded', { roundId });
+                        
+                        // AHORA SÍ iniciamos el timer de inactividad
+                        this.startInactivityTimer(roundId);
+                        
+                        // Si es ronda especial, iniciar descenso de precio
+                        if (round.type === 'special') {
+                            this.startPriceDecrement(round);
+                        }
+                    }, presentationTime);
+                    
+                    this.presentationTimers.set(roundId, presentationTimer);
 
-                    // Si es ronda especial, iniciar descenso de precio
-                    if (round.type === 'special') {
-                        this.startPriceDecrement(round);
-                    }
+                    // Notificar tiempo de presentación
+                    this.io.emit('round:presentationStarted', {
+                        roundId,
+                        presentationEndsAt: presentationEndsAt.getTime(),
+                        duration: presentationTime
+                    });
+
                 } catch (error) {
                     socket.emit('error', { message: error.message });
                 }
@@ -142,34 +166,34 @@ class SocketHandler {
             socket.on('admin:setInactivityTimeout', async (data) => {
                 try {
                     const { minutes, token } = data;
-                    
+
                     // Validar que sea admin (simplificado)
                     if (!token) {
                         socket.emit('error', { message: 'No autorizado' });
                         return;
                     }
-                    
+
                     const newTimeout = minutes * 60 * 1000; // Convertir minutos a milisegundos
-                    
+
                     if (newTimeout < 30000) { // Mínimo 30 segundos
                         socket.emit('error', { message: 'El timeout mínimo es 30 segundos (0.5 minutos)' });
                         return;
                     }
-                    
+
                     if (newTimeout > 30 * 60 * 1000) { // Máximo 30 minutos
                         socket.emit('error', { message: 'El timeout máximo es 30 minutos' });
                         return;
                     }
-                    
+
                     this.INACTIVITY_TIMEOUT = newTimeout;
                     console.log(`⚙️ Timeout de inactividad cambiado a ${minutes} minutos`);
-                    
+
                     // Notificar a todos los clientes
                     this.io.emit('config:timeoutUpdated', {
                         minutes,
                         milliseconds: newTimeout
                     });
-                    
+
                     socket.emit('success', { message: `Timeout actualizado a ${minutes} minutos` });
                 } catch (error) {
                     socket.emit('error', { message: error.message });
@@ -191,6 +215,15 @@ class SocketHandler {
 
                     if (round.status !== 'active') {
                         socket.emit('error', { message: 'La ronda no está activa' });
+                        return;
+                    }
+
+                    // Verificar que el período de presentación haya terminado
+                    if (round.presentationEndsAt && new Date() < new Date(round.presentationEndsAt)) {
+                        const secondsLeft = Math.ceil((new Date(round.presentationEndsAt) - new Date()) / 1000);
+                        socket.emit('error', { 
+                            message: `Espera ${secondsLeft} segundos. Período de presentación en curso.` 
+                        });
                         return;
                     }
 
@@ -376,22 +409,22 @@ class SocketHandler {
     // Iniciar timer de inactividad
     startInactivityTimer(roundId) {
         console.log(`⏰ Iniciando timer de inactividad para ronda ${roundId} (${this.INACTIVITY_TIMEOUT / 1000}s)`);
-        
+
         // Cancelar timer anterior si existe
         this.cancelInactivityTimer(roundId);
-        
+
         // Guardar el tiempo de inicio
         const startTime = Date.now();
         const expiresAt = startTime + this.INACTIVITY_TIMEOUT;
         this.inactivityStartTimes.set(roundId, { startTime, expiresAt });
-        
+
         const timer = setTimeout(async () => {
             console.log(`⏰ Timer expirado para ronda ${roundId}, cerrando automáticamente...`);
             await this.autoCloseRound(roundId);
         }, this.INACTIVITY_TIMEOUT);
-        
+
         this.inactivityTimers.set(roundId, timer);
-        
+
         // Notificar a todos los clientes sobre el nuevo timer
         this.io.emit('round:timerUpdate', {
             roundId,
@@ -411,9 +444,14 @@ class SocketHandler {
             // Notificar que el timer fue cancelado
             this.io.emit('round:timerCancelled', { roundId });
         }
-    }
-
-    // Auto-cerrar ronda por inactividad
+        
+        // También cancelar timer de presentación si existe
+        if (this.presentationTimers.has(roundId)) {
+            clearTimeout(this.presentationTimers.get(roundId));
+            this.presentationTimers.delete(roundId);
+            console.log(`⏰ Timer de presentación cancelado para ronda ${roundId}`);
+        }
+    }    // Auto-cerrar ronda por inactividad
     async autoCloseRound(roundId) {
         try {
             const round = await Round.findByPk(roundId, {
@@ -462,8 +500,8 @@ class SocketHandler {
 
             // Notificar a todos
             this.io.emit('round:closed', updatedRound);
-            this.io.emit('round:autoCloseNotification', { 
-                roundId, 
+            this.io.emit('round:autoCloseNotification', {
+                roundId,
                 reason: 'inactivity',
                 message: 'Ronda cerrada automáticamente por inactividad (5 minutos)'
             });
