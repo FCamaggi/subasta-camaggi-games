@@ -209,7 +209,7 @@ const SpectatorView = () => {
                 ) : null}
               </div>
               
-              <h2 className="text-4xl font-bold mb-4">{activeRound.title}</h2>
+              <h2 className="text-4xl font-bold mb-4">Ronda {activeRound.order} - {activeRound.title}</h2>
               <p className="text-xl text-gray-700 mb-6">{activeRound.description}</p>
               
               <div className="bg-gradient-to-r from-green-100 to-blue-100 rounded-2xl p-8 mb-6 text-center">

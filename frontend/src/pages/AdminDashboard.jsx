@@ -293,7 +293,7 @@ const RoundCard = ({ round, onStart, onClose, onEdit, timerExpiresAt }) => {
     <div className="card">
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
-          <h3 className="text-xl font-bold">{round.title}</h3>
+          <h3 className="text-xl font-bold">Ronda {round.order} - {round.title}</h3>
           <p className="text-gray-600">{round.description}</p>
           <div className="flex items-center gap-2 mt-2">
             <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${statusColors[round.status]}`}>
