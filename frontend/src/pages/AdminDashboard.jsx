@@ -3,8 +3,10 @@ import { getSocket } from '../services/socket';
 import { roundsAPI } from '../services/api';
 import InactivityTimer from '../components/InactivityTimer';
 import PresentationTimer from '../components/PresentationTimer';
+import CoinFlipGame from '../components/CoinFlipGame';
+import RouletteGame from '../components/RouletteGame';
 
-const AdminDashboard = ({ user, onLogout }) => {
+const AdminDashboard = ({ user, onLogout, showPreviewGame, setShowPreviewGame }) => {
   const [rounds, setRounds] = useState([]);
   const [teams, setTeams] = useState([]);
   const [selectedRound, setSelectedRound] = useState(null);
@@ -233,6 +235,28 @@ const AdminDashboard = ({ user, onLogout }) => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        {/* Botones de prueba de minijuegos */}
+        <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg p-6 mb-8">
+          <h3 className="text-lg font-bold mb-4">🎮 Probar Minijuegos</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Prueba los minijuegos como los verían los jugadores. Puedes usarlos las veces que quieras en modo de prueba.
+          </p>
+          <div className="flex gap-4">
+            <button
+              onClick={() => setShowPreviewGame('coinflip')}
+              className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg font-semibold hover:scale-105 transition-all"
+            >
+              🪙 Probar Cara y Sello
+            </button>
+            <button
+              onClick={() => setShowPreviewGame('roulette')}
+              className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:scale-105 transition-all"
+            >
+              🎡 Probar Ruleta de Items
+            </button>
+          </div>
+        </div>
+
         {/* Balances de Equipos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {teams.map((team) => (
@@ -600,4 +624,30 @@ const EditRoundForm = ({ round, onSaved, onCancel }) => {
   );
 };
 
-export default AdminDashboard;
+// Componente principal del AdminDashboard con minijuegos de prueba
+const AdminDashboardWithGames = (props) => {
+  const [showPreviewGame, setShowPreviewGame] = useState(null);
+
+  return (
+    <>
+      <AdminDashboard {...props} showPreviewGame={showPreviewGame} setShowPreviewGame={setShowPreviewGame} />
+      
+      {/* Minijuegos de prueba */}
+      {showPreviewGame === 'coinflip' && (
+        <CoinFlipGame 
+          isPreview={true}
+          onClose={() => setShowPreviewGame(null)} 
+        />
+      )}
+      
+      {showPreviewGame === 'roulette' && (
+        <RouletteGame 
+          isPreview={true}
+          onClose={() => setShowPreviewGame(null)} 
+        />
+      )}
+    </>
+  );
+};
+
+export default AdminDashboardWithGames;

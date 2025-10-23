@@ -1,9 +1,13 @@
 const { Team, Round, initDatabase } = require('../models');
+const MinigameUsage = require('../models/MinigameUsage');
 const crypto = require('crypto');
 
 const initializeData = async () => {
     try {
         await initDatabase();
+        
+        // Sincronizar modelo MinigameUsage
+        await MinigameUsage.sync({ force: false });
 
         // Crear equipos si no existen
         const teamCount = await Team.count();

@@ -402,7 +402,8 @@ const TeamDashboard = ({ user, onLogout }) => {
       {/* Minijuegos */}
       {showMinigame === 'coinflip' && (
         <CoinFlipGame 
-          roundId={wonRound?.id} 
+          roundId={wonRound?.id}
+          teamId={myTeam.id}
           onClose={() => {
             setShowMinigame(null);
             setWonRound(null);
@@ -412,7 +413,8 @@ const TeamDashboard = ({ user, onLogout }) => {
       
       {showMinigame === 'roulette' && (
         <RouletteGame 
-          roundId={wonRound?.id} 
+          roundId={wonRound?.id}
+          teamId={myTeam.id}
           onClose={() => {
             setShowMinigame(null);
             setWonRound(null);

@@ -1,4 +1,5 @@
 const { Round, Team, Bid, Transaction, sequelize } = require('../models');
+const MinigameUsage = require('../models/MinigameUsage');
 
 class SocketHandler {
     constructor(io) {
@@ -320,6 +321,57 @@ class SocketHandler {
 
                     const teams = await Team.findAll();
                     this.io.emit('teams:updated', teams);
+                } catch (error) {
+                    socket.emit('error', { message: error.message });
+                }
+            });
+
+            // Verificar si un equipo puede usar un minijuego
+            socket.on('minigame:checkUsage', async ({ roundId, teamId }) => {
+                try {
+                    const usage = await MinigameUsage.findOne({
+                        where: { roundId, teamId }
+                    });
+
+                    socket.emit('minigame:usageStatus', {
+                        roundId,
+                        teamId,
+                        hasUsed: !!usage,
+                        canUse: !usage
+                    });
+                } catch (error) {
+                    socket.emit('error', { message: error.message });
+                }
+            });
+
+            // Registrar uso de minijuego
+            socket.on('minigame:registerUsage', async ({ roundId, teamId, minigameType, result }) => {
+                try {
+                    // Verificar que no se haya usado antes
+                    const existingUsage = await MinigameUsage.findOne({
+                        where: { roundId, teamId }
+                    });
+
+                    if (existingUsage) {
+                        socket.emit('error', { message: 'Este minijuego ya fue usado para esta ronda' });
+                        return;
+                    }
+
+                    // Registrar el uso
+                    await MinigameUsage.create({
+                        roundId,
+                        teamId,
+                        minigameType,
+                        result
+                    });
+
+                    socket.emit('minigame:usageRegistered', {
+                        roundId,
+                        teamId,
+                        minigameType
+                    });
+
+                    console.log(`✅ Minijuego usado: Team ${teamId}, Round ${roundId}, Type: ${minigameType}`);
                 } catch (error) {
                     socket.emit('error', { message: error.message });
                 }

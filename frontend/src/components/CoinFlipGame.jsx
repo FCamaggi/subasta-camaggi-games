@@ -1,11 +1,37 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getSocket } from '../services/socket';
 
-const CoinFlipGame = ({ roundId, onClose }) => {
+const CoinFlipGame = ({ roundId, teamId, onClose, isPreview = false }) => {
   const [selectedSide, setSelectedSide] = useState(null); // 'heads' o 'tails'
   const [betPoints, setBetPoints] = useState(0);
   const [isFlipping, setIsFlipping] = useState(false);
   const [result, setResult] = useState(null);
   const [hasFlipped, setHasFlipped] = useState(false);
+  const [alreadyUsed, setAlreadyUsed] = useState(false);
+  const [checkingUsage, setCheckingUsage] = useState(!isPreview);
+
+  useEffect(() => {
+    if (isPreview || !teamId || !roundId) {
+      setCheckingUsage(false);
+      return;
+    }
+
+    const socket = getSocket();
+
+    // Verificar si ya se usó este minijuego
+    socket.emit('minigame:checkUsage', { roundId, teamId });
+
+    socket.on('minigame:usageStatus', (data) => {
+      if (data.roundId === roundId && data.teamId === teamId) {
+        setAlreadyUsed(data.hasUsed);
+        setCheckingUsage(false);
+      }
+    });
+
+    return () => {
+      socket.off('minigame:usageStatus');
+    };
+  }, [roundId, teamId, isPreview]);
 
   const handleFlip = () => {
     if (!selectedSide || betPoints <= 0 || betPoints > 15) {
@@ -20,13 +46,28 @@ const CoinFlipGame = ({ roundId, onClose }) => {
       const coinResult = Math.random() < 0.5 ? 'heads' : 'tails';
       const won = coinResult === selectedSide;
       
-      setResult({
+      const resultData = {
         side: coinResult,
         won: won,
-        pointsWon: won ? betPoints : -betPoints
-      });
+        pointsWon: won ? betPoints : -betPoints,
+        selectedSide,
+        betPoints
+      };
+      
+      setResult(resultData);
       setIsFlipping(false);
       setHasFlipped(true);
+
+      // Registrar el uso del minijuego (solo si no es preview)
+      if (!isPreview && teamId && roundId) {
+        const socket = getSocket();
+        socket.emit('minigame:registerUsage', {
+          roundId,
+          teamId,
+          minigameType: 'coinflip',
+          result: resultData
+        });
+      }
     }, 2000);
   };
 
@@ -35,10 +76,27 @@ const CoinFlipGame = ({ roundId, onClose }) => {
       <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
         <div className="text-center mb-6">
           <h2 className="text-3xl font-bold mb-2">🪙 Cara y Sello</h2>
-          <p className="text-gray-600">Apuesta y duplica tus puntos</p>
+          <p className="text-gray-600">{isPreview ? 'Vista Previa - Modo de Prueba' : 'Apuesta y duplica tus puntos'}</p>
         </div>
 
-        {!hasFlipped ? (
+        {checkingUsage ? (
+          <div className="text-center py-8">
+            <div className="animate-spin text-4xl mb-4">⏳</div>
+            <p className="text-gray-600">Verificando...</p>
+          </div>
+        ) : alreadyUsed && !isPreview ? (
+          <div className="text-center py-8">
+            <div className="text-6xl mb-4">🚫</div>
+            <p className="text-xl font-bold text-red-600 mb-4">Ya usaste este minijuego</p>
+            <p className="text-gray-600 mb-6">Solo puedes usar el Cara y Sello una vez por ronda ganada</p>
+            <button
+              onClick={onClose}
+              className="w-full py-3 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg transition-all"
+            >
+              Cerrar
+            </button>
+          </div>
+        ) : !hasFlipped ? (
           <>
             {/* Selector de lado */}
             <div className="mb-6">
@@ -123,11 +181,13 @@ const CoinFlipGame = ({ roundId, onClose }) => {
             </div>
 
             {/* Instrucciones */}
-            <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-4 mb-6">
-              <p className="text-sm font-semibold text-yellow-800 text-center">
-                📸 Por favor toma una captura de pantalla o foto de este resultado y envíasela al host
-              </p>
-            </div>
+            {!isPreview && (
+              <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-4 mb-6">
+                <p className="text-sm font-semibold text-yellow-800 text-center">
+                  📸 Por favor toma una captura de pantalla o foto de este resultado y envíasela al host
+                </p>
+              </div>
+            )}
 
             {/* Botón de cerrar */}
             <button
@@ -139,7 +199,7 @@ const CoinFlipGame = ({ roundId, onClose }) => {
           </>
         )}
 
-        {!hasFlipped && (
+        {!hasFlipped && !checkingUsage && (!alreadyUsed || isPreview) && (
           <button
             onClick={onClose}
             className="w-full mt-4 py-2 text-gray-600 hover:text-gray-800 font-semibold"
