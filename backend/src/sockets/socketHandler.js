@@ -422,8 +422,12 @@ class SocketHandler {
     }
 
     calculatePriceAtTime(round, clientTime) {
-        const startTime = new Date(round.startedAt);
-        const elapsedMs = clientTime - startTime;
+        // Si hay período de presentación, el descenso inicia DESPUÉS de la presentación
+        const startTime = round.presentationEndsAt 
+            ? new Date(round.presentationEndsAt) 
+            : new Date(round.startedAt);
+        
+        const elapsedMs = Math.max(0, clientTime - startTime); // No puede ser negativo
         const intervals = Math.floor(elapsedMs / round.decrementInterval);
         const totalDecrement = intervals * parseFloat(round.priceDecrement);
         const price = parseFloat(round.startingPrice) - totalDecrement;
