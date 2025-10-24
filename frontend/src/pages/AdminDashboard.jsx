@@ -401,6 +401,7 @@ const AdminDashboard = ({ user, onLogout }) => {
               onClose={handleCloseRound}
               onEdit={loadData}
               timerExpiresAt={roundTimers[round.id]}
+              presentationEndsAt={presentationTimers[round.id]}
             />
           ))}
         </div>
@@ -424,7 +425,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   );
 };
 
-const RoundCard = ({ round, onStart, onClose, onEdit, timerExpiresAt }) => {
+const RoundCard = ({ round, onStart, onClose, onEdit, timerExpiresAt, presentationEndsAt }) => {
   const [isEditing, setIsEditing] = useState(false);
   
   const statusColors = {
@@ -452,10 +453,10 @@ const RoundCard = ({ round, onStart, onClose, onEdit, timerExpiresAt }) => {
             }`}>
               {round.type === 'normal' ? 'NORMAL' : 'ESPECIAL'}
             </span>
-            {round.status === 'active' && presentationTimers[round.id] && (
-              <PresentationTimer roundId={round.id} endsAt={presentationTimers[round.id]} />
+            {round.status === 'active' && presentationEndsAt && (
+              <PresentationTimer roundId={round.id} endsAt={presentationEndsAt} />
             )}
-            {round.status === 'active' && !presentationTimers[round.id] && timerExpiresAt && (
+            {round.status === 'active' && !presentationEndsAt && timerExpiresAt && (
               <InactivityTimer roundId={round.id} expiresAt={timerExpiresAt} />
             )}
           </div>
