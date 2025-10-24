@@ -206,6 +206,12 @@ const TeamDashboard = ({ user, onLogout }) => {
   const handleStop = () => {
     if (!activeRound || activeRound.type !== 'special') return;
 
+    // No permitir STOP durante período de presentación
+    if (presentationEndsAt) {
+      alert('Espera a que termine la presentación del item');
+      return;
+    }
+
     const currentPrice = parseFloat(activeRound.currentPrice);
     if (currentPrice > myTeam.balance) {
       alert('Balance insuficiente para el precio actual');
@@ -320,11 +326,14 @@ const TeamDashboard = ({ user, onLogout }) => {
                   <button
                     onClick={handleStop}
                     className="btn-danger text-2xl py-6 px-12"
-                    disabled={parseFloat(activeRound.currentPrice) > parseFloat(myTeam.balance)}
+                    disabled={presentationEndsAt || parseFloat(activeRound.currentPrice) > parseFloat(myTeam.balance)}
                   >
                     🛑 STOP
                   </button>
-                  {parseFloat(activeRound.currentPrice) > parseFloat(myTeam.balance) && (
+                  {presentationEndsAt && (
+                    <p className="text-yellow-600 mt-2">⏳ Espera a que termine la presentación del item</p>
+                  )}
+                  {!presentationEndsAt && parseFloat(activeRound.currentPrice) > parseFloat(myTeam.balance) && (
                     <p className="text-red-600 mt-2">Balance insuficiente para el precio actual</p>
                   )}
                 </div>
