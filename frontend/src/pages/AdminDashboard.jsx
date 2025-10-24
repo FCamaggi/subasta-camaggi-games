@@ -6,7 +6,7 @@ import PresentationTimer from '../components/PresentationTimer';
 import CoinFlipGame from '../components/CoinFlipGame';
 import RouletteGame from '../components/RouletteGame';
 
-const AdminDashboard = ({ user, onLogout, showPreviewGame, setShowPreviewGame }) => {
+const AdminDashboard = ({ user, onLogout }) => {
   const [rounds, setRounds] = useState([]);
   const [teams, setTeams] = useState([]);
   const [selectedRound, setSelectedRound] = useState(null);
@@ -16,6 +16,7 @@ const AdminDashboard = ({ user, onLogout, showPreviewGame, setShowPreviewGame })
   const [presentationTimers, setPresentationTimers] = useState({}); // { roundId: presentationEndsAt }
   const [showTimeoutConfig, setShowTimeoutConfig] = useState(false);
   const [newTimeout, setNewTimeout] = useState(5); // minutos
+  const [showPreviewGame, setShowPreviewGame] = useState(null); // 'coinflip' o 'roulette'
 
   useEffect(() => {
     console.log('⚙️ AdminDashboard - Configurando listeners de socket');
@@ -404,6 +405,21 @@ const AdminDashboard = ({ user, onLogout, showPreviewGame, setShowPreviewGame })
           ))}
         </div>
       </div>
+
+      {/* Minijuegos de prueba */}
+      {showPreviewGame === 'coinflip' && (
+        <CoinFlipGame 
+          isPreview={true}
+          onClose={() => setShowPreviewGame(null)} 
+        />
+      )}
+      
+      {showPreviewGame === 'roulette' && (
+        <RouletteGame 
+          isPreview={true}
+          onClose={() => setShowPreviewGame(null)} 
+        />
+      )}
     </div>
   );
 };
@@ -726,30 +742,4 @@ const EditRoundForm = ({ round, onSaved, onCancel }) => {
   );
 };
 
-// Componente principal del AdminDashboard con minijuegos de prueba
-const AdminDashboardWithGames = (props) => {
-  const [showPreviewGame, setShowPreviewGame] = useState(null);
-
-  return (
-    <>
-      <AdminDashboard {...props} showPreviewGame={showPreviewGame} setShowPreviewGame={setShowPreviewGame} />
-      
-      {/* Minijuegos de prueba */}
-      {showPreviewGame === 'coinflip' && (
-        <CoinFlipGame 
-          isPreview={true}
-          onClose={() => setShowPreviewGame(null)} 
-        />
-      )}
-      
-      {showPreviewGame === 'roulette' && (
-        <RouletteGame 
-          isPreview={true}
-          onClose={() => setShowPreviewGame(null)} 
-        />
-      )}
-    </>
-  );
-};
-
-export default AdminDashboardWithGames;
+export default AdminDashboard;
